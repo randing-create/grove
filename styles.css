@@ -103,6 +103,8 @@ textarea:focus, input:focus, button:focus-visible, a:focus-visible, summary:focu
 /* ---------- a line for the moment ---------- */
 .mantra { position: relative; background: var(--lilac); color: var(--ink); border-radius: 24px; padding: 20px 60px 20px 20px; }
 .mantra .serif { font-size: 24px; font-style: italic; }
+.mantra { display: flex; flex-direction: column; gap: 6px; }
+.mantra .label { color: #3D3559; }
 .mantra-next { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border: none; background: transparent; color: #3D3559; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: transform 0.4s ease; }
 .mantra-next:active { transform: rotate(180deg); }
 
@@ -114,8 +116,8 @@ textarea:focus, input:focus, button:focus-visible, a:focus-visible, summary:focu
 .blob.lv1 { --s: 78px; --c: #8FB6DA; --hi: #C9DEF0; }
 .blob.lv2 { --s: 118px; --c: #9CC4E4; --hi: #D5E7F5; }
 .blob.lv3 { --s: 158px; --c: #9DCFA3; --hi: #D3EDD6; }
-.blob.lv4 { --s: 198px; --c: #EBC25A; --hi: #F8E6AE; }
-.blob.lv5 { --s: 238px; --c: #F0A04B; --hi: #FAD9A6; }
+.blob.lv4 { --s: 198px; --c: #EDD071; --hi: #F9EDBE; }
+.blob.lv5 { --s: 238px; --c: #F9DC3C; --hi: #FFF6B0; }
 @keyframes morph { 0% { border-radius: 58% 42% 55% 45% / 46% 56% 44% 54%; } 50% { border-radius: 44% 56% 42% 58% / 57% 43% 57% 43%; } 100% { border-radius: 52% 48% 60% 40% / 42% 58% 46% 54%; } }
 @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; margin: 0; }

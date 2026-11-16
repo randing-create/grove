@@ -6,7 +6,7 @@
   var app = document.getElementById('app');
   var toastEl = document.getElementById('toast');
 
-  var LEVELS = ['Empty', 'Low', 'Okay', 'Good', 'Full'];
+  var LEVELS = ['Empty', 'Low', 'Okay', 'Good', 'High'];
   var DECISIONS = [['continue', 'Continue'], ['adjust', 'Adjust'], ['pause', 'Pause']];
   var LINES = {
     heavy: { title: 'When the day feels heavy', lines: ['I can start with the energy I have.', 'I can feel unsure and still take one small step.', 'What would make the next ten minutes more doable?'] },
@@ -17,7 +17,7 @@
 
   var ICON = {
     seed: '<path d="M12 3c4 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 2-7 6-11z"/><path d="M12 13v5"/>',
-    root: '<path d="M4 9h16"/><path d="M12 3v18"/><path d="M12 12c-1 4-4 5-6 7"/><path d="M12 12c1 4 4 5 6 7"/>',
+    root: '<path d="M12 8.5C12 5.5 10 3.5 7 3.5c0 3 2 5 5 5z"/><path d="M12 8.5c0-2.6 2-4.6 5-4.6 0 2.6-2 4.6-5 4.6z"/><path d="M8 9.5h8c0 4.5-1.4 8.3-4 11.5-2.6-3.2-4-7-4-11.5z"/><path d="M9.6 13.5h2.2M12.4 16h2"/>',
     sprout: '<path d="M12 21v-9"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 12c0-3 2.5-5 6-5 0 3-2.5 5-6 5z"/>',
     bloom: '<circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="5.5" r="2.5"/><circle cx="18.5" cy="12" r="2.5"/><circle cx="12" cy="18.5" r="2.5"/><circle cx="5.5" cy="12" r="2.5"/>',
     pollinate: '<ellipse cx="12" cy="14.5" rx="4" ry="5.5"/><path d="M8.4 13h7.2M8.4 16h7.2"/><path d="M9.5 9.5C6.5 9.5 4 7.5 4.3 5c2.6-.6 5.2.8 6 3.6"/><path d="M14.5 9.5c3 0 5.5-2 5.2-4.5-2.6-.6-5.2.8-6 3.6"/>',
@@ -325,7 +325,7 @@
       '<p id="energy-word" class="serif" style="text-align:center">Okay</p>' +
       '<label class="sr" for="energy-range">Energy from 1 to 5</label>' +
       '<input id="energy-range" type="range" min="1" max="5" step="1" value="3">' +
-      '<div class="row between small muted"><span>Empty</span><span>Full</span></div></div>';
+      '<div class="row between small muted"><span>Empty</span><span>High</span></div></div>';
   }
   function statsFor(wk) {
     var notes = notesIn(wk);
@@ -452,7 +452,7 @@
       var size = sizeLine(d.energy);
       var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
       body = energy + restNote +
-        '<div class="mantra"><span class="serif">' + esc(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>' +
+        '<div class="mantra"><span class="label">A line for today</span><span class="serif">' + esc(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>' +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
         (size ? '<span class="small muted">' + esc(size) + '</span>' : '') + '</div></div>' +
@@ -674,10 +674,14 @@
     var t = today(); var wk = monday(t); var theme = S.ui.theme;
     S = blank(); S.ui.theme = theme;
     S.project = { what: 'Grove: a journal that helps women turn an idea into an offer they can test.',
-      who: 'An independent consultant who wants to turn what she knows into a small product.',
-      before: 'She keeps polishing her idea and learning new tools. She tells herself it is not ready. It feels busy and stuck. Nobody else has seen it.',
-      after: 'One real person has tried it each week, and she knows what to build next.',
-      offer: 'A two-week try-out of Grove with one check-in call.' };
+      why: 'I kept polishing my own idea instead of showing it to anyone. I want a tool that gets me out of that.',
+      who: 'An independent consultant, freelancer or creative with years of experience, who wants to turn what she knows into a small product.',
+      before: 'She has started on an idea she cares about. She keeps refining it or learning another tool. At the end of the week she still does not know how someone would use it.',
+      after: 'Every week one real person sees or tries her work, and she knows what to build or sell next.',
+      offer: 'Two weeks with Grove: a few minutes a day, one small step sized to your energy, and a short review at the end of each week.',
+      place: 'The WoMen AI Lab group, to builders who have something they can test this week.',
+      invite: 'Open the link, write this week\'s question, and tell me after seven days what you would skip.',
+      contact: 'randing-create.github.io/grove' };
     S.weeks[wk] = {
       question: 'Does planning one small step a day change what I actually do next?',
       sign: 'A note, in my own words, of a day when the step I took was not the one I had planned.',
