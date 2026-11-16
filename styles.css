@@ -101,17 +101,43 @@ textarea:focus, input:focus, button:focus-visible, a:focus-visible, summary:focu
 .list .bullet { width: 12px; height: 12px; border-radius: 50%; flex: none; margin-top: 7px; background: var(--gold); }
 
 /* ---------- a line for the moment ---------- */
-.mantra { background: var(--lilac); color: var(--ink); border-radius: 24px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; text-align: left; border: none; width: 100%; transition: transform 0.12s ease; }
+.mantra { position: relative; background: var(--lilac); color: var(--ink); border-radius: 24px; padding: 20px 60px 20px 20px; }
 .mantra .serif { font-size: 24px; font-style: italic; }
-.mantra .label { color: #3D3559; }
+.mantra-next { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border: none; background: transparent; color: #3D3559; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: transform 0.4s ease; }
+.mantra-next:active { transform: rotate(180deg); }
 
-/* ---------- energy rings ---------- */
-.rings { position: relative; width: 272px; height: 272px; margin: 0 auto; }
-.rings button { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; border: 1.5px solid var(--line-strong); background: transparent; padding: 0; transition: background 0.25s ease, border-color 0.25s ease; }
-.rings button.on { background: var(--c); border-color: var(--c); }
-.rings .num { position: absolute; left: 50%; top: 5px; transform: translateX(-50%); font-size: 13px; color: var(--muted); pointer-events: none; }
-.rings button.on .num { color: var(--ink); }
-.e-low { --c: var(--blue); } .e-mid { --c: var(--green); } .e-high { --c: var(--gold); }
+/* ---------- energy: a soft shape that grows as you slide ---------- */
+.energy { display: flex; flex-direction: column; gap: 10px; }
+.blob-wrap { height: 250px; display: flex; align-items: center; justify-content: center; }
+.blob { width: var(--s); height: var(--s); background: radial-gradient(circle at 34% 30%, var(--hi), var(--c) 62%); border-radius: 58% 42% 55% 45% / 46% 56% 44% 54%;
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); animation: morph 7s ease-in-out infinite alternate, breathe 4s ease-in-out infinite; }
+.blob.lv1 { --s: 78px; --c: #8FB6DA; --hi: #C9DEF0; }
+.blob.lv2 { --s: 118px; --c: #9CC4E4; --hi: #D5E7F5; }
+.blob.lv3 { --s: 158px; --c: #9DCFA3; --hi: #D3EDD6; }
+.blob.lv4 { --s: 198px; --c: #EBC25A; --hi: #F8E6AE; }
+.blob.lv5 { --s: 238px; --c: #F0A04B; --hi: #FAD9A6; }
+@keyframes morph { 0% { border-radius: 58% 42% 55% 45% / 46% 56% 44% 54%; } 50% { border-radius: 44% 56% 42% 58% / 57% 43% 57% 43%; } 100% { border-radius: 52% 48% 60% 40% / 42% 58% 46% 54%; } }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; margin: 0; }
+input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: var(--line); }
+input[type="range"]::-moz-range-track { height: 8px; border-radius: 999px; background: var(--line); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 34px; height: 34px; margin-top: -13px; border-radius: 50%; background: var(--primary); border: 4px solid var(--ground); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); border: 4px solid var(--ground); }
+
+/* ---------- week rings ---------- */
+.weekring { flex: none; }
+.weekring .arc { animation: draw 0.9s ease-out both; }
+@keyframes draw { from { stroke-dashoffset: var(--c); } }
+.key { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+
+/* ---------- offer card ---------- */
+.offercard { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; }
+.offercard > div { padding: 14px 20px; display: flex; flex-direction: column; gap: 4px; }
+.offercard > div + div { border-top: 1px solid var(--line); }
+.offercard p { font-family: var(--serif); font-size: 22px; line-height: 1.2; }
+.offer-head { background: var(--lime); color: var(--ink); flex-direction: row !important; align-items: center; gap: 10px !important; font-weight: 600; }
+.offer-head .logo { color: var(--ink); }
+.offer-contact { padding: 14px 20px; border-top: 1px solid var(--line); font-family: var(--sans) !important; font-size: 16px !important; color: var(--primary); font-weight: 500; }
 
 /* ---------- segmented ---------- */
 .seg { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -130,7 +156,7 @@ textarea:focus, input:focus, button:focus-visible, a:focus-visible, summary:focu
 
 /* ---------- growth map ---------- */
 .tile { width: 56px; height: 56px; border-radius: 18px; background: var(--c); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.t-seed { --c: var(--lime); } .t-root { --c: var(--peach); } .t-sprout { --c: var(--green); } .t-bloom { --c: var(--lilac); } .t-harvest { --c: var(--orange); }
+.t-seed { --c: var(--lime); } .t-root { --c: var(--peach); } .t-sprout { --c: var(--green); } .t-bloom { --c: var(--lilac); } .t-pollinate { --c: var(--orange); }
 details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); }
 details pre { white-space: pre-wrap; font: inherit; font-size: 14px; color: var(--muted); background: var(--sunk); border-radius: 14px; padding: 14px; margin: 0; }
 details.mapstep { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 14px 16px; }
@@ -161,7 +187,7 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .cols, .g { display: flex; flex-direction: column; gap: 22px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .screen, .donemark, details.mapstep > .stack { animation: none; }
+  .screen, .donemark, details.mapstep > .stack, .blob, .weekring .arc { animation: none; }
   .struck { animation: none; text-decoration-color: var(--text); }
 }
 

@@ -20,7 +20,8 @@
     root: '<path d="M4 9h16"/><path d="M12 3v18"/><path d="M12 12c-1 4-4 5-6 7"/><path d="M12 12c1 4 4 5 6 7"/>',
     sprout: '<path d="M12 21v-9"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 12c0-3 2.5-5 6-5 0 3-2.5 5-6 5z"/>',
     bloom: '<circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="5.5" r="2.5"/><circle cx="18.5" cy="12" r="2.5"/><circle cx="12" cy="18.5" r="2.5"/><circle cx="5.5" cy="12" r="2.5"/>',
-    harvest: '<path d="M4 10h16l-1.5 9h-13z"/><path d="M8 10l4-6 4 6"/>',
+    pollinate: '<ellipse cx="12" cy="14.5" rx="4" ry="5.5"/><path d="M8.4 13h7.2M8.4 16h7.2"/><path d="M9.5 9.5C6.5 9.5 4 7.5 4.3 5c2.6-.6 5.2.8 6 3.6"/><path d="M14.5 9.5c3 0 5.5-2 5.2-4.5-2.6-.6-5.2.8-6 3.6"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     chev: '<path d="M6 9l6 6 6-6"/>',
     back: '<path d="M15 5l-7 7 7 7"/>'
@@ -33,36 +34,40 @@
   }
 
   var MAP = [
-    { key: 'seed', name: 'Seed', title: 'Choose what matters', prompts: ['vision', 'landscape'],
+    { key: 'seed', name: 'Seed', title: 'Choose what matters', fields: ['what', 'why'], prompts: ['vision', 'landscape', 'canvas'],
       when: 'You are unsure why this is worth building, or you keep switching ideas.',
       write: 'Why this matters to you, who gets stuck and when, and what you would notice if things got better for them.',
       tryIt: 'Pick the part you are least sure about and make it this week\'s question.',
       question: 'Which part of this idea am I least sure about?' },
-    { key: 'root', name: 'Root', title: 'Know who it is for', prompts: ['profile', 'conversation', 'persona'],
+    { key: 'root', name: 'Root', title: 'Know who it is for', fields: ['who', 'before', 'after'], prompts: ['profile', 'storyboard', 'conversation', 'persona'],
       when: 'You are building for "everyone", or you have not talked to anyone yet.',
-      write: 'One real person. Before: what is happening around them, what they tell themselves, how that feels, what they do or avoid. After: the same four lines once the problem is solved.',
+      write: 'One real person. What is happening around them, what they tell themselves, how that feels, what they do or avoid. Then the same once the problem is solved.',
       tryIt: 'Ask one person about the last time the problem happened. What did they do, what did they try, what did it cost them? Save one sentence in their words.',
       question: 'What did one real person do the last time this problem came up?' },
-    { key: 'sprout', name: 'Sprout', title: 'Make the smallest offer', prompts: ['demo', 'concept'],
+    { key: 'sprout', name: 'Sprout', title: 'Make the smallest offer', fields: ['offer'], prompts: ['demo', 'concept'],
       when: 'You keep adding features, or you cannot say what it is in one breath.',
-      write: 'Who it is for and who it is not for, what changes for them, the smallest version you could put in front of someone, and what would change your mind.',
+      write: 'The smallest version you could put in front of someone, who it is for and who it is not for.',
       tryIt: 'Watch one real person use it on their own task. Say as little as you can.',
       question: 'What happens when one person tries the smallest version on their own task?' },
-    { key: 'bloom', name: 'Bloom', title: 'Show the work', prompts: ['content'],
+    { key: 'bloom', name: 'Bloom', title: 'Show the work', fields: ['place'], prompts: ['content'],
       when: 'The work exists and nobody has seen it.',
       write: 'One place and one kind of person, and the one thing you want them to do next.',
       tryIt: 'Share it once, there, with that ask. Note who actually does it.',
       question: 'Who takes the next step when I show this in one place?' },
-    { key: 'harvest', name: 'Harvest', title: 'Invite and follow up', prompts: ['pitch', 'followup'],
-      when: 'People say "nice" and nothing happens.',
+    { key: 'pollinate', name: 'Pollinate', title: 'Invite, follow up, let it travel', fields: ['invite'], prompts: ['pitch', 'followup', 'investors'],
+      when: 'People say "nice" and nothing happens, or the work is not travelling beyond the people you know.',
       write: 'A concrete invitation and what saying yes involves, such as bringing a project, booking a trial, or paying a stated price.',
-      tryIt: 'Ask one person directly. Follow up once. Record what they did, whether they came back, and what a no or a silence taught you.',
-      question: 'Who says yes to a concrete invitation?' }
+      tryIt: 'Ask one person directly. Follow up once. Then ask them who else should see it. Record what they did and what a no or a silence taught you.',
+      question: 'Who says yes to a concrete invitation, and who do they pass it on to?' }
   ];
 
   /* The questions Grove asks before it builds a prompt. Answers are saved, so each is written once. */
   var FIELDS = {
     what: ['project.what', 'What are you working on?', 'A sentence is enough.'],
+    why: ['project.why', 'Why does this matter to you?', 'Your own reason, in your own words.'],
+    place: ['project.place', 'Where will you show it, and to whom?', 'One place and one kind of person.'],
+    invite: ['project.invite', 'What do you want them to do next?', 'Try it, book a call, bring a project, pay a stated price.'],
+    contact: ['project.contact', 'How can they reach you?', 'A link, an email or a handle. It stays on this device until you share the card.'],
     who: ['project.who', 'Who is it for? One real person is best.', 'A name, or someone like "a freelance designer with two clients".'],
     before: ['project.before', 'What is it like for them now?', 'What is happening, what they tell themselves, how it feels, what they do.'],
     after: ['project.after', 'What would be different once this is solved?', ''],
@@ -93,7 +98,13 @@
     pitch: { title: 'Practise the invitation', blurb: 'The AI plays your person while you make a concrete ask.', fields: ['who', 'offer', 'after'],
       ask: ['Play this person while I make a concrete invitation, including a price if I state one. Raise the two or three most likely hesitations, one at a time.', 'Afterwards, tell me where I over-explained and give me a shorter version of my ask.'] },
     followup: { title: 'Set up a follow-up list', blurb: 'A simple list of who you asked and when, and one warm follow-up message.', fields: ['who', 'offer'],
-      ask: ['Set up a simple follow-up list I can keep in a note or a spreadsheet: the columns, one example row, and a short follow-up message I can send once.', 'The message should be warm and plain, and easy to say no to.'] }
+      ask: ['Set up a simple follow-up list I can keep in a note or a spreadsheet: the columns, one example row, and a short follow-up message I can send once.', 'The message should be warm and plain, and easy to say no to.'] },
+    canvas: { title: 'Sketch the business on one page', blurb: 'A first-draft business model canvas from your notes, with the guesses marked.', fields: ['what', 'who', 'offer', 'after'],
+      ask: ['Fill in a business model canvas from my notes: who it serves, the value to them, how it reaches them, how the relationship works, how money comes in, key activities, key resources, key partners and main costs.', 'Mark every box you had to guess with (guess). Then tell me which two guesses are riskiest and how I could test each one this week.'] },
+    storyboard: { title: 'Storyboard one person\'s day', blurb: 'Six frames, from the moment the problem shows up to the moment it is solved.', fields: ['who', 'before', 'after', 'offer'],
+      ask: ['Write a six-frame storyboard for this one person: the moment the problem shows up, what they try, where it goes wrong, how they come across my offer, the first time they use it, and what is different afterwards.', 'One or two sentences per frame, in plain words. Mark what you are guessing with (guess).'] },
+    investors: { title: 'Keep track of supporters and funders', blurb: 'A simple list of people who might back the project, and a monthly update to send them.', fields: ['what', 'who', 'after', 'invite'],
+      ask: ['Set up a simple list for people who might support or fund this: the columns, one example row, and what to note after each conversation.', 'Then draft a short update I could send once a month: what I tried, what I learned, what I need. Leave the numbers blank for me to fill in.'] }
   };
 
   /* ---------- state ---------- */
@@ -101,7 +112,7 @@
   function blank() {
     return {
       v: 2, screen: 'today',
-      project: { what: '', who: '', before: '', after: '', offer: '' },
+      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '' },
       weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
       feedback: { tried: '', stuck: '', change: '', include: false },
@@ -200,7 +211,7 @@
     return cur;
   }
   function lastPerson() {
-    var keys = Object.keys(S.days).filter(function (k) { return S.days[k].person; }).sort();
+    var keys = Object.keys(S.days).filter(function (k) { return S.days[k].person && S.days[k].out; }).sort();
     return keys.length ? keys[keys.length - 1] : '';
   }
   function personLine() {
@@ -309,14 +320,82 @@
       '<button class="btn small-btn" data-act="' + kind + '" data-arg="yes">Yes, do it</button>' +
       '<button class="btn ghost small-btn" data-act="cancelConfirm">Cancel</button></div></div>';
   }
-  function rings(e) {
-    var color = !e ? '' : (e <= 2 ? ' e-low' : (e === 3 ? ' e-mid' : ' e-high'));
-    var sizes = { 5: 272, 4: 222, 3: 172, 2: 122, 1: 72 };
-    var out = '<div class="rings' + color + '" role="group" aria-label="Energy from 1 to 5">';
-    [5, 4, 3, 2, 1].forEach(function (n) {
-      out += '<button class="' + (e && n <= e ? 'on' : '') + '" style="width:' + sizes[n] + 'px;height:' + sizes[n] + 'px" aria-pressed="' + (n === e) + '" aria-label="Energy ' + n + ' of 5, ' + LEVELS[n - 1] + '" data-act="energy" data-arg="' + n + '"><span class="num">' + n + '</span></button>';
+  function energyPicker() {
+    return '<div class="energy"><div class="blob-wrap"><div id="blob" class="blob lv3"></div></div>' +
+      '<p id="energy-word" class="serif" style="text-align:center">Okay</p>' +
+      '<label class="sr" for="energy-range">Energy from 1 to 5</label>' +
+      '<input id="energy-range" type="range" min="1" max="5" step="1" value="3">' +
+      '<div class="row between small muted"><span>Empty</span><span>Full</span></div></div>';
+  }
+  function statsFor(wk) {
+    var notes = notesIn(wk);
+    return { shown: notes.length, evidence: notes.filter(function (n) { return n.evidence && has(n.happened); }).length, person: notes.filter(function (n) { return n.person; }).length };
+  }
+  function weekRing(st, size) {
+    var arcs = [[50, Math.min(1, st.shown / 7), 'var(--green)'], [37, Math.min(1, st.evidence / 3), 'var(--gold)'], [24, Math.min(1, st.person), 'var(--lilac)']];
+    var out = '<svg class="weekring" width="' + size + '" height="' + size + '" viewBox="0 0 120 120" role="img" aria-label="Showed up ' + st.shown + ' of 7 days, ' + st.evidence + ' of 3 evidence notes, seen by someone on ' + st.person + (st.person === 1 ? ' day' : ' days') + '">';
+    arcs.forEach(function (a) {
+      var c = 2 * Math.PI * a[0];
+      out += '<circle cx="60" cy="60" r="' + a[0] + '" fill="none" stroke="var(--line)" stroke-width="10"/>';
+      if (a[1] > 0) out += '<circle class="arc" cx="60" cy="60" r="' + a[0] + '" fill="none" stroke="' + a[2] + '" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="' + c.toFixed(1) + '" style="--c:' + c.toFixed(1) + ';stroke-dashoffset:' + (c * (1 - a[1])).toFixed(1) + '"/>';
     });
-    return out + '</div><p class="serif" style="text-align:center">' + (e ? LEVELS[e - 1] : 'Tap a ring') + '</p>';
+    return out + '</svg>';
+  }
+  function ringLegend(st) {
+    var row = function (color, text) { return '<span class="row small"><span class="key" style="background:var(--' + color + ')"></span>' + text + '</span>'; };
+    var closed = st.shown >= 7 && st.evidence >= 3 && st.person >= 1;
+    return '<div class="stack" style="gap:8px">' + row('green', 'Showed up ' + Math.min(st.shown, 7) + ' of 7') + row('gold', 'Evidence ' + Math.min(st.evidence, 3) + ' of 3') +
+      row('lilac', 'Seen by someone ' + (st.person ? 'yes' : 'not yet')) + (closed ? '<span class="small warn">All three rings closed this week.</span>' : '<span class="small muted">Rest days count as showing up.</span>') + '</div>';
+  }
+  function offerText() {
+    var v = function (k) { return (fieldValue(k) || '').trim(); };
+    var out = [];
+    if (v('who')) out.push('For: ' + v('who'));
+    if (v('before')) out.push('Right now: ' + v('before'));
+    if (v('after')) out.push('With this: ' + v('after'));
+    if (v('offer')) out.push('What I am offering: ' + v('offer'));
+    if (v('invite')) out.push('Next step: ' + v('invite'));
+    if (v('contact')) out.push(v('contact'));
+    return out.join('\n');
+  }
+  function offerCardInner() {
+    var rows = [['For', 'who'], ['Right now', 'before'], ['With this', 'after'], ['The offer', 'offer'], ['Next step', 'invite']];
+    var body = rows.map(function (r) {
+      var val = (fieldValue(r[1]) || '').trim();
+      return '<div><span class="label">' + r[0] + '</span><p' + (val ? '' : ' class="empty"') + '>' + (val ? esc(val) : 'Not written yet') + '</p></div>';
+    }).join('');
+    var contact = (fieldValue('contact') || '').trim();
+    return '<div class="offer-head">' + LOGO + '<span>An offer to try</span></div>' + body + (contact ? '<p class="offer-contact">' + esc(contact) + '</p>' : '');
+  }
+  function offerImage(done) {
+    var W0 = 1080, H0 = 1350, pad = 96;
+    var cv = document.createElement('canvas'); cv.width = W0; cv.height = H0;
+    var g = cv.getContext('2d');
+    g.fillStyle = '#F7F3EC'; g.fillRect(0, 0, W0, H0);
+    g.fillStyle = '#D9E76C'; g.fillRect(0, 0, W0, 190);
+    g.strokeStyle = '#244B3F'; g.lineWidth = 7;
+    [44, 29, 14].forEach(function (r) { g.beginPath(); g.arc(pad + 44, 95, r, 0, Math.PI * 2); g.stroke(); });
+    g.fillStyle = '#1F2420'; g.font = '600 46px "Instrument Sans", system-ui, sans-serif'; g.textBaseline = 'middle';
+    g.fillText('An offer to try', pad + 120, 97);
+    var y = 280;
+    var wrap = function (text, font, lh, maxLines) {
+      g.font = font; var words = text.split(/\s+/); var line = ''; var lines = [];
+      words.forEach(function (w) { var t = line ? line + ' ' + w : w; if (g.measureText(t).width > W0 - pad * 2 && line) { lines.push(line); line = w; } else line = t; });
+      if (line) lines.push(line);
+      if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] = lines[maxLines - 1].replace(/.{0,3}$/, '') + '…'; }
+      lines.forEach(function (l) { g.fillText(l, pad, y); y += lh; });
+    };
+    g.textBaseline = 'alphabetic';
+    [['FOR', 'who', 2], ['RIGHT NOW', 'before', 3], ['WITH THIS', 'after', 3], ['THE OFFER', 'offer', 3], ['NEXT STEP', 'invite', 2]].forEach(function (r) {
+      var val = (fieldValue(r[1]) || '').trim(); if (!val) return;
+      g.fillStyle = '#244B3F'; g.font = '600 26px "Instrument Sans", system-ui, sans-serif'; g.fillText(r[0], pad, y); y += 54;
+      g.fillStyle = '#1F2420'; wrap(val, '50px "Instrument Serif", Georgia, serif', 62, r[2]); y += 34;
+    });
+    var contact = (fieldValue('contact') || '').trim();
+    g.fillStyle = '#244B3F'; g.font = '500 34px "Instrument Sans", system-ui, sans-serif';
+    if (contact) g.fillText(contact.slice(0, 48), pad, H0 - 130);
+    g.fillStyle = '#5B625A'; g.font = '28px "Instrument Sans", system-ui, sans-serif'; g.fillText('Made with Grove by WoMen AI Lab', pad, H0 - 70);
+    cv.toBlob(function (blob) { done(blob); }, 'image/png');
   }
   function promptCard(kind, from) {
     var P = PROMPTS[kind]; var n = promptFilled(kind);
@@ -339,14 +418,15 @@
       '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><p class="serif">Turn an idea you care about into an offer you can test.</p>' +
       '<p class="small muted">Start with a step below. Nothing else needs filling in first.</p>' +
       '<div class="row wrap"><button class="btn ghost small-btn" data-act="example">Load the Grove example</button>' +
-      '<button class="btn ghost small-btn" data-act="go" data-arg="week">Plan this week</button></div></div>';
+      '<button class="btn ghost small-btn" data-act="go" data-arg="week">Plan this week</button>' +
+      '<button class="btn ghost small-btn" data-act="go" data-arg="map">Set up step by step</button></div></div>';
     var due = (!S.paused && reviewWeek() !== monday(today()))
       ? '<div class="notice stack"><p>Last week has not been reviewed yet.</p><div class="row"><button class="btn ghost small-btn" data-act="go" data-arg="review">Review last week</button></div></div>'
       : '';
-    var weekLine = '<button class="stack" style="background:none;border:none;text-align:left;padding:0;gap:6px" data-act="go" data-arg="week">' +
+    var weekLine = '<button class="row" style="background:none;border:none;text-align:left;padding:0;gap:14px;align-items:flex-start;width:100%" data-act="go" data-arg="week"><span class="stack" style="gap:6px;flex:1;min-width:0">' +
       '<span class="label">This week\'s question</span>' +
       '<span class="serif' + (has(w.question) ? '' : ' empty') + '">' + (has(w.question) ? esc(w.question) : 'No question yet. Add one in This Week.') + '</span>' +
-      '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span></button>';
+      '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span></span>' + weekRing(statsFor(monday(today())), 68) + '</button>';
     var body;
 
     if (S.paused) {
@@ -364,14 +444,15 @@
         '<button class="link" data-act="reopen">Change today\'s entry</button></div>';
     } else {
       var energy = (!d.energy && !d.energySkipped)
-        ? '<div class="stack"><h1>How much energy do you have today?</h1>' + rings(0) +
+        ? '<div class="stack"><h1>How much energy do you have today?</h1>' + energyPicker() +
+          '<button class="btn ghost" data-act="setEnergy">That is my energy</button>' +
           '<button class="link" style="align-self:center" data-act="skipEnergy">Skip</button></div>'
         : '<button class="link" style="align-self:flex-start" data-act="redoEnergy">' + (d.energy ? 'Energy ' + d.energy + ' of 5, ' + LEVELS[d.energy - 1].toLowerCase() + ' · change' : 'Energy skipped · check now') + '</button>';
       var planned = has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '';
       var size = sizeLine(d.energy);
       var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
       body = energy + restNote +
-        '<button class="mantra" data-act="nextLine" aria-label="A line for today. Tap for another."><span class="label">A line for today · tap for another</span><span class="serif">' + esc(lineFor(d)) + '</span></button>' +
+        '<div class="mantra"><span class="serif">' + esc(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>' +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
         (size ? '<span class="small muted">' + esc(size) + '</span>' : '') + '</div></div>' +
@@ -421,7 +502,8 @@
         '<button class="btn ghost small-btn rest' + (p.rest ? ' on' : '') + '" aria-pressed="' + p.rest + '" data-act="toggleRest" data-arg="' + k + '">Rest</button></div>' + did + '</div>';
     }).join('');
     var ringList = S.rings.length ? '<div class="list">' + S.rings.slice().reverse().map(function (r) {
-      return '<div><span class="bullet"></span><span><span class="small muted">' + esc(range(r.week)) + ' · ' + esc(r.decisionLabel) + '</span><br>' +
+      var rn = r.notes || [];
+      return '<div>' + weekRing({ shown: rn.length, evidence: rn.filter(function (n) { return n.evidence && has(n.happened); }).length, person: rn.filter(function (n) { return n.person; }).length }, 48) + '<span><span class="small muted">' + esc(range(r.week)) + ' · ' + esc(r.decisionLabel) + '</span><br>' +
         (has(r.question) ? esc(r.question) + '<br>' : '') + (has(r.reason) ? '<span class="small muted">' + esc(r.reason) + '</span>' : '') + '</span></div>';
     }).join('') + '</div>' : '<p class="muted">A finished review becomes a Growth Ring here.</p>';
     var dark = S.ui.theme === 'dark';
@@ -433,6 +515,7 @@
       '<button class="' + (isCur ? 'on' : '') + '" aria-pressed="' + isCur + '" data-act="showWeek" data-arg="' + cur + '">This week</button>' +
       '<button class="' + (!isCur ? 'on' : '') + '" aria-pressed="' + !isCur + '" data-act="showWeek" data-arg="' + addDays(cur, 7) + '">Plan next week</button></div>' +
       '<div class="cols"><div class="g g1">' +
+      (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' : '') +
       field('One question or outcome for the week', 'week.question', w.question, 'What do you want to find out?', 2) +
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
       field('Who will see or try it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
@@ -443,6 +526,9 @@
       '<div class="section"><span class="brand">AI Tool Shed</span>' +
       '<p class="small muted">Grove asks you a few questions, then builds a prompt from your answers for the AI you already use. More cards are inside each Growth Map step.</p>' +
       promptCard('conversation', 'week') + promptCard('smaller', 'week') + '</div>' +
+      '<div class="section"><span class="brand">Offer card</span>' +
+      '<p class="small muted">One card that says who it is for, what changes and what to do next. Send it to a real person.</p>' +
+      '<div class="row"><button class="btn ghost small-btn" data-act="go" data-arg="offer">Make an offer card</button></div></div>' +
       '<div class="section"><span class="brand">Project notes</span>' +
       field('What are you working on?', 'project.what', S.project.what, 'A sentence is enough.', 2) +
       field('Who is it for? One real person is best.', 'project.who', S.project.who, '', 2) + '</div>' +
@@ -499,6 +585,18 @@
       '<button class="btn ghost" data-act="copyFeedback">Copy instead</button></section>';
   };
 
+  screens.offer = function () {
+    var keys = ['who', 'before', 'after', 'offer', 'invite', 'contact'];
+    return '<section class="screen pad-bottom">' +
+      '<header class="top">' + backBtn('week') + '<span class="small muted">Offer card</span></header>' +
+      '<h1>An offer someone can try</h1>' +
+      '<p class="muted">Fill in what you can. The card updates as you type. Send it to one real person.</p>' +
+      keys.map(function (k) { var f = FIELDS[k]; return field(f[1], f[0], fieldValue(k), f[2], 2); }).join('') +
+      '<div id="offer-preview" class="offercard">' + offerCardInner() + '</div>' +
+      '<button class="btn" data-act="shareOffer">Share as text</button>' +
+      '<button class="btn ghost" data-act="saveOfferImage">Save as an image</button></section>';
+  };
+
   screens.review = function () {
     var wk = reviewWeek();
     var w = W(wk);
@@ -535,25 +633,22 @@
   };
 
   screens.map = function () {
-    var lines = Object.keys(LINES).map(function (k) {
-      return '<div class="stack" style="gap:6px"><span class="label">' + esc(LINES[k].title) + '</span>' + LINES[k].lines.map(function (l) { return '<p class="serif" style="font-size:21px;font-style:italic">' + esc(l) + '</p>'; }).join('') + '</div>';
-    }).join('');
     return '<section class="screen">' +
       '<header class="top"><span class="brand">Growth Map</span><span class="small muted">Optional</span></header>' +
-      '<p class="muted">Five short pages. Open one when it is useful. You do not need them to use Grove.</p>' +
+      '<p class="muted">Work through the five steps in order, or open only the one you need. What you write here fills in your AI prompts and your offer card.</p>' +
       MAP.map(function (m, i) {
         return '<details class="mapstep"><summary><span class="tile t-' + m.key + '">' + svg(m.key, 28) + '</span>' +
-          '<span class="stack" style="gap:2px"><span class="label">' + (i + 1) + ' · ' + m.name + '</span><span class="serif">' + m.title + '</span></span>' +
+          '<span class="stack" style="gap:2px"><span class="label">' + (i + 1) + ' · ' + m.name + ' · ' + m.fields.filter(function (k) { return has(fieldValue(k)); }).length + ' of ' + m.fields.length + ' written</span><span class="serif">' + m.title + '</span></span>' +
           '<span class="chev">' + svg('chev', 22) + '</span></summary>' +
           '<div class="stack" style="gap:16px">' +
           '<div><span class="label">Open it when</span><p>' + esc(m.when) + '</p></div>' +
-          '<div><span class="label">Write down</span><p>' + esc(m.write) + '</p></div>' +
+          '<div class="stack"><span class="label">Write down</span><p class="small muted">' + esc(m.write) + '</p>' + m.fields.map(function (k) { var f = FIELDS[k]; return field(f[1], f[0], fieldValue(k), f[2], 2); }).join('') + '</div>' +
           '<div><span class="label">Try it</span><p>' + esc(m.tryIt) + '</p></div>' +
           '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="useQuestion" data-arg="' + i + '">Use as this week\'s question</button>' +
+          (m.key === 'sprout' ? '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="go" data-arg="offer">Make an offer card</button>' : '') +
           '<span class="label">Ask your AI for help</span>' + m.prompts.map(function (k) { return promptCard(k, 'map'); }).join('') +
           '</div></details>';
       }).join('') +
-      '<div class="section"><span class="brand">Lines for the moment</span>' + lines + '</div>' +
       FOOT + '</section>' + tabs('map');
   };
 
@@ -636,6 +731,28 @@
       else copyText(text, 'Copied. Paste it into a message to Ran.');
     },
     copyFeedback: function () { copyText(feedbackText(), 'Copied. Paste it into a message to Ran.'); },
+    setEnergy: function () {
+      var el = document.getElementById('energy-range'); var d = D();
+      d.energy = el ? Number(el.value) : 3; d.energySkipped = false; render();
+    },
+    shareOffer: function () {
+      var text = offerText();
+      if (!text) return toast('Write at least one line first.');
+      if (navigator.share) navigator.share({ title: 'An offer to try', text: text }).catch(function () {});
+      else copyText(text, 'Copied. Paste it into a message.');
+    },
+    saveOfferImage: function () {
+      if (!offerText()) return toast('Write at least one line first.');
+      offerImage(function (blob) {
+        if (!blob) return toast('Could not make the image on this device.');
+        var file = null;
+        try { file = new File([blob], 'grove-offer.png', { type: 'image/png' }); } catch (e) { file = null; }
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) return navigator.share({ files: [file], title: 'An offer to try' }).catch(function () {});
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'grove-offer.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000); toast('Image saved.');
+      });
+    },
     nextLine: function () { S.ui.lineIdx = (S.ui.lineIdx || 0) + 1; render(); },
     energy: function (arg) { var d = D(); d.energy = Number(arg); d.energySkipped = false; render(); },
     skipEnergy: function () { D().energySkipped = true; render(); },
@@ -706,6 +823,7 @@
   function refreshPreviews() {
     var a = document.getElementById('prompt-preview'); if (a) a.textContent = buildPrompt(S.ui.promptKind);
     var b = document.getElementById('feedback-preview'); if (b) b.textContent = feedbackText();
+    var c = document.getElementById('offer-preview'); if (c) c.innerHTML = offerCardInner();
   }
 
   app.addEventListener('click', function (e) {
@@ -714,6 +832,12 @@
     acts[el.dataset.act](el.dataset.arg, el);
   });
   app.addEventListener('input', function (e) {
+    if (e.target.id === 'energy-range') {
+      var n = Number(e.target.value);
+      var blob = document.getElementById('blob'); if (blob) blob.className = 'blob lv' + n;
+      var word = document.getElementById('energy-word'); if (word) word.textContent = LEVELS[n - 1];
+      return;
+    }
     var b = e.target.dataset && e.target.dataset.bind;
     if (!b) return;
     setBind(b, e.target.value); save(); refreshPreviews();
