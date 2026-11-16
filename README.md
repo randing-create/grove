@@ -4,7 +4,7 @@
 
 Choose a step that fits your energy, try it with real people, and use what you learn to decide what to build or sell next. Everything you write stays in your own browser.
 
-Open it: https://randing-create.github.io/wal-studio-app/
+Open it: https://randing-create.github.io/grove/
 
 On a phone, use "Add to Home Screen" in the browser's share menu to open it like an app.
 
