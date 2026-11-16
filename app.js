@@ -296,7 +296,10 @@
         '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
         '<button class="link" data-act="go" data-arg="checkout">Check out without a step</button>';
     }
-    return '<section class="screen">' + head + intro + weekLine + body + '</section>' + tabs('today');
+    var due = (!S.paused && reviewWeek() !== monday(today()))
+      ? '<div class="notice stack"><p>Last week has not been reviewed yet.</p><div class="row"><button class="btn ghost small-btn" data-act="go" data-arg="review">Review last week</button></div></div>'
+      : '';
+    return '<section class="screen">' + head + intro + due + weekLine + body + '</section>' + tabs('today');
   };
 
   screens.checkout = function () {
@@ -356,7 +359,7 @@
       field('Who will see or try it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
       (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' : '') +
       '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
-      (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">Review this week</button>' : '') +
+      (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
       '</div><div class="g g2">' +
       '<div class="section"><span class="brand">AI Tool Shed</span>' +
       '<p class="small muted">Grove has no AI built in yet. These cards copy a prompt with your notes in it, for the AI you already use.</p>' +
