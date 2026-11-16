@@ -724,7 +724,8 @@
     invite: function () {
       var url = location.origin + location.pathname;
       var text = 'I am trying Grove, a small journal for turning an idea into an offer you can test. Want to try it for a week?';
-      if (navigator.share) navigator.share({ title: 'Grove', text: text, url: url }).catch(function () {});
+      /* The link goes inside the text: with a separate url, some apps show only a link preview and drop the sentence. */
+      if (navigator.share) navigator.share({ text: text + '\n' + url }).catch(function () {});
       else copyText(text + ' ' + url, 'Invitation copied. Paste it into a message.');
     },
     shareFeedback: function () {
