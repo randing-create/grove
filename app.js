@@ -1,36 +1,76 @@
 (function () {
   'use strict';
 
-  var KEY = 'wal-studio-v1';
+  var KEY = 'grove-v1';
+  var OLD_KEY = 'wal-studio-v1';
   var app = document.getElementById('app');
   var toastEl = document.getElementById('toast');
 
-  var FEEL = {
-    peach: ['Anxious', 'Frustrated', 'Scattered', 'Overwhelmed', 'Restless', 'Pressured'],
-    gold: ['Hopeful', 'Curious', 'Excited', 'Energised', 'Inspired', 'Proud'],
-    blue: ['Tired', 'Drained', 'Heavy', 'Flat', 'Discouraged', 'Lonely'],
-    green: ['Calm', 'Content', 'Grateful', 'Settled', 'Relieved', 'Rested']
-  };
-  var QUADS = [
-    ['peach', 'Stirred up', 'High energy'], ['gold', 'Lit up', 'High energy'],
-    ['blue', 'Worn down', 'Low energy'], ['green', 'At ease', 'Low energy']
-  ];
   var LEVELS = ['Empty', 'Low', 'Okay', 'Good', 'Full'];
-  var DECISIONS = [['keep', 'Keep going'], ['adjust', 'Adjust'], ['pause', 'Pause'], ['end', 'End']];
+  var DECISIONS = [['continue', 'Continue'], ['adjust', 'Adjust'], ['pause', 'Pause']];
+  var LINES = {
+    heavy: ['I can start with the energy I have.', 'I can feel unsure and still take one small step.', 'What would make the next ten minutes more doable?'],
+    testing: ['I can care about this idea and stay curious about what happens.', 'I\'m allowed to learn something I didn\'t expect.', 'One honest observation gives me something to work with.'],
+    showing: ['I can let one real person see this version.', 'I can share it simply and leave room for a response.', 'I can hear a no and let it teach me something.']
+  };
+  var MAP = [
+    { name: 'Seed', title: 'Choose what matters',
+      when: 'You are unsure why this is worth building, or you keep switching ideas.',
+      write: 'Why this matters to you, who gets stuck and when, and what you would notice if things got better for them.',
+      tryIt: 'Pick the part you are least sure about and make it this week\'s question.',
+      ai: 'Turn your own words into two sentences about the project, and look up what people already use to solve this.',
+      question: 'Which part of this idea am I least sure about?' },
+    { name: 'Root', title: 'Know who it is for',
+      when: 'You are building for "everyone", or you have not talked to anyone yet.',
+      write: 'One real person. Before: what is happening around them, what they tell themselves, how that feels, what they do or avoid. After: the same four lines once the problem is solved.',
+      tryIt: 'Ask one person about the last time the problem happened. What did they do, what did they try, what did it cost them? Save one sentence in their words.',
+      ai: 'Rehearse the questions with you, and check that none of them lead the answer.',
+      question: 'What did one real person do the last time this problem came up?' },
+    { name: 'Sprout', title: 'Make the smallest offer',
+      when: 'You keep adding features, or you cannot say what it is in one breath.',
+      write: 'Who it is for and who it is not for, what changes for them, the smallest version you could put in front of someone, and what would change your mind.',
+      tryIt: 'Watch one real person use it on their own task. Say as little as you can.',
+      ai: 'Help you build a rough demo, and explain a change so you can make it yourself.',
+      question: 'What happens when one person tries the smallest version on their own task?' },
+    { name: 'Bloom', title: 'Show the work',
+      when: 'The work exists and nobody has seen it.',
+      write: 'One place and one kind of person, and the one thing you want them to do next.',
+      tryIt: 'Share it once, there, with that ask. Note who actually does it.',
+      ai: 'Draft the post from a note you chose to share, and find where these people already gather.',
+      question: 'Who takes the next step when I show this in one place?' },
+    { name: 'Harvest', title: 'Invite and follow up',
+      when: 'People say "nice" and nothing happens.',
+      write: 'A concrete invitation and what saying yes involves, such as bringing a project, booking a trial, or paying a stated price.',
+      tryIt: 'Ask one person directly. Follow up once. Record what they did, whether they came back, and what a no or a silence taught you.',
+      ai: 'Practise the ask with you, and keep a simple list of who you asked and when.',
+      question: 'Who says yes to a concrete invitation?' }
+  ];
 
   /* ---------- state ---------- */
 
   function blank() {
     return {
-      v: 1, screen: 'welcome', setupDone: false,
-      project: { what: '', who: '', room: '', learn: '' },
-      goal: '',
-      card: { learn: '', how: '', evidence: '', firstStep: '', mine: '' },
-      startDate: '', firstDay: '', days: {}, queued: '', queuedFrom: '',
-      custom: [], reviews: [], paused: false,
+      v: 2, screen: 'today',
+      project: { what: '', who: '' },
+      weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
-      ui: { quad: '', word: '', editStep: false, hideStarter: {}, confirm: '' }
+      ui: { confirm: '', viewWeek: '', note: '' }
     };
+  }
+
+  function migrateOld(old) {
+    var s = blank();
+    s.project.what = (old.project && old.project.what) || '';
+    s.project.who = (old.project && old.project.who) || '';
+    Object.keys(old.days || {}).forEach(function (k) {
+      var o = old.days[k];
+      s.days[k] = { energy: o.energy || 0, energySkipped: o.checkin === 'skipped', planned: '', step: o.step || '', shrunk: false, rest: !!o.rest,
+        happened: o.evidence || '', changes: o.learned || '', person: false, evidence: !!(o.evidence && o.kind === 'evidence'), out: !!(o.done || o.rest) };
+    });
+    var wk = monday(today());
+    s.weeks[wk] = { question: old.goal || (old.card && old.card.learn) || '', sign: (old.card && old.card.evidence) || '', who: '', plan: {} };
+    if (old.queued) s.weeks[monday(today())].plan[today()] = { step: old.queued, rest: false };
+    return s;
   }
 
   function load() {
@@ -39,23 +79,20 @@
       var raw = localStorage.getItem(KEY);
       if (raw) {
         var d = JSON.parse(raw);
-        if (d && d.v === 1) {
+        if (d && d.v === 2) {
           Object.keys(d).forEach(function (k) { base[k] = d[k]; });
-          ['project', 'card', 'review', 'ui'].forEach(function (k) {
-            base[k] = Object.assign({}, blank()[k], d[k] || {});
-          });
-          base.ui.confirm = '';
+          base.project = Object.assign({}, blank().project, d.project || {});
+          base.review = Object.assign({}, blank().review, d.review || {});
+          base.ui = Object.assign({}, blank().ui, d.ui || {}); base.ui.confirm = '';
         }
+      } else {
+        var oldRaw = localStorage.getItem(OLD_KEY);
+        if (oldRaw) { var old = JSON.parse(oldRaw); if (old && old.v === 1) base = migrateOld(old); }
       }
     } catch (e) { /* storage unavailable: run without saving */ }
     return base;
   }
-
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ }
-  }
-
-  var S = load();
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
 
   /* ---------- helpers ---------- */
 
@@ -71,117 +108,129 @@
   function today() { return iso(new Date()); }
   function parse(s) { var p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
   function addDays(s, n) { var d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+  function monday(s) { var dow = (parse(s).getDay() + 6) % 7; return addDays(s, -dow); }
   function nice(s) { return parse(s).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
-  function start() { return S.startDate || S.firstDay || today(); }
-  function dayNum() { return Math.round((parse(today()) - parse(start())) / 86400000) + 1; }
-  function dayLine() {
-    var n = dayNum();
-    if (n < 1) return 'Starts ' + nice(start());
-    if (n > 7) return 'Day ' + n + ' · review is due';
-    return 'Day ' + n + ' of 7';
+  function shortDay(s) { return parse(s).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }); }
+  function range(wk) { return nice(wk) + ' to ' + nice(addDays(wk, 6)); }
+  function has(s) { return !!(s && String(s).trim()); }
+  function daysBetween(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
+
+  var S = load();
+
+  function W(key) {
+    if (!S.weeks[key]) S.weeks[key] = { question: '', sign: '', who: '', plan: {} };
+    if (!S.weeks[key].plan) S.weeks[key].plan = {};
+    return S.weeks[key];
+  }
+  function planFor(date) {
+    var w = W(monday(date));
+    if (!w.plan[date]) w.plan[date] = { step: '', rest: false };
+    return w.plan[date];
   }
   function D() {
     var t = today();
-    if (!S.days[t]) {
-      S.days[t] = { feelings: [], energy: 0, checkin: '', step: '', done: false, rest: false, kind: 'evidence', evidence: '', learned: '', why1: '', why2: '' };
+    if (!S.days[t]) S.days[t] = { energy: 0, energySkipped: false, planned: '', step: '', shrunk: false, rest: false, happened: '', changes: '', person: false, evidence: false, out: false };
+    var rec = S.days[t];
+    var p = planFor(t).step || '';
+    if (!rec.out && rec.planned !== p) {
+      if (!has(rec.step) || rec.step === rec.planned) rec.step = p;
+      rec.planned = p;
     }
-    return S.days[t];
+    return rec;
   }
-  function famOf(word) {
-    var found = '';
-    Object.keys(FEEL).forEach(function (f) { if (FEEL[f].indexOf(word) >= 0) found = f; });
-    if (!found) S.custom.forEach(function (c) { if (c[0] === word) found = c[1]; });
-    return found || 'gold';
+  function viewWeek() { return S.ui.viewWeek || monday(today()); }
+  function weekDays(wk) { var out = []; for (var i = 0; i < 7; i++) out.push(addDays(wk, i)); return out; }
+  function notesIn(wk) {
+    return weekDays(wk).filter(function (k) { return S.days[k] && S.days[k].out; }).map(function (k) { return Object.assign({ date: k }, S.days[k]); });
   }
-  function has(s) { return !!(s && String(s).trim()); }
+  function reviewWeek() {
+    var cur = monday(today()), prev = addDays(cur, -7);
+    var ringed = S.rings.some(function (r) { return r.week === prev; });
+    if (!notesIn(cur).length && notesIn(prev).length && !ringed) return prev;
+    return cur;
+  }
+  function lastPerson() {
+    var keys = Object.keys(S.days).filter(function (k) { return S.days[k].person; }).sort();
+    return keys.length ? keys[keys.length - 1] : '';
+  }
+  function personLine() {
+    var last = lastPerson();
+    if (!last) return { text: 'Nobody else has seen the work yet.', warn: true };
+    var n = daysBetween(last, today());
+    var seenThisWeek = last >= monday(today());
+    var when = n === 0 ? 'today' : (n === 1 ? 'yesterday' : n + ' days ago');
+    return { text: 'Someone else last saw it ' + when + '.', warn: !seenThisWeek };
+  }
   function hasAnyData() {
-    return S.setupDone || has(S.project.what) || has(S.goal) || has(S.card.firstStep) || Object.keys(S.days).length > 0;
+    return has(S.project.what) || Object.keys(S.days).some(function (k) { return S.days[k].out || has(S.days[k].step) || S.days[k].energy; }) ||
+      Object.keys(S.weeks).some(function (k) { var w = S.weeks[k]; return has(w.question) || has(w.sign) || Object.keys(w.plan || {}).some(function (d) { return has(w.plan[d].step); }); });
   }
   function toast(msg) {
-    toastEl.textContent = msg;
-    toastEl.hidden = false;
-    clearTimeout(toast.t);
-    toast.t = setTimeout(function () { toastEl.hidden = true; }, 1800);
+    toastEl.textContent = msg; toastEl.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(function () { toastEl.hidden = true; }, 2200);
   }
   function sizeLine(energy) {
     if (!energy) return '';
-    if (energy <= 2) return 'Low energy today: do only the first 10 minutes of it.';
-    if (energy === 3) return 'Steady energy: give it about 30 minutes.';
-    return 'Good energy: you can give it up to an hour.';
+    if (energy <= 2) return 'Low energy: pick the least effort that can still teach you something. Ten minutes is enough.';
+    if (energy === 3) return 'Steady energy: about half an hour on the step that teaches you most.';
+    return 'Good energy: a day for the step that teaches the most, like watching someone use it.';
   }
-  function observations() {
-    return Object.keys(S.days).sort().filter(function (k) { return k >= start() && has(S.days[k].evidence); })
-      .map(function (k) { return { date: k, kind: S.days[k].kind, text: S.days[k].evidence, fam: S.days[k].feelings[0] ? famOf(S.days[k].feelings[0]) : '' }; });
+  function lineFor(d) {
+    var kind = d.energy && d.energy <= 2 ? 'heavy' : (/send|show|share|ask|invite|post|call|message|email|meet|interview/i.test(d.step || '') ? 'showing' : 'testing');
+    return LINES[kind][parse(today()).getDate() % LINES[kind].length];
   }
 
-  /* ---------- starter suggestions (rules, not a model) ---------- */
-
-  var STARTER = {
-    goal: function () { return 'One person other than me has tried it and told me, in their own words, what they would skip.'; },
-    first: function () { return 'Write down the name of one person to ask, and the one question I most want answered. About 20 minutes.'; },
-    learn: function () { return has(S.goal) ? 'Whether I can get to this: ' + S.goal.trim() : 'Whether one real person wants this enough to try it.'; },
-    how: function () { return 'Show it to one person and watch what they do before I explain anything.'; },
-    evidence: function () { return 'What they said or did, in their own words. Not my impression.'; },
-    mine: function () { return 'I do the asking myself. AI can help me draft three neutral questions.'; }
-  };
+  /* ---------- prompt cards (copied to the person's own AI; nothing is sent from here) ---------- */
 
   function buildPrompt(kind) {
-    var f = function (s) { return has(s) ? s.trim() : '(not filled in yet)'; };
-    var ask = {
-      goal: 'one visible result I could see by the end of the week, in one sentence',
-      first: 'one first step I can do myself in about 20 minutes',
-      card: 'a short test card with four lines: what I want to find out, how I will try, what counts as evidence, and a first step'
-    }[kind];
-    return [
-      'I am using WAL Studio, a journal that turns one week into one small experiment.',
-      'My project: ' + f(S.project.what),
+    var w = W(monday(today())); var d = D();
+    var f = function (s) { return has(s) ? s.trim() : '(not written yet)'; };
+    var ctx = [
+      'I am using Grove, a journal that helps me turn an idea into an offer I can test with real people, one week at a time.',
+      'What I am working on: ' + f(S.project.what),
       'Who it is for: ' + f(S.project.who),
-      'Time I can make this week: ' + f(S.project.room),
-      'What I want to be able to do myself: ' + f(S.project.learn),
-      'By the end of the week I would like to see: ' + f(S.goal),
-      'First step so far: ' + f(S.card.firstStep),
-      '',
-      'Please draft ' + ask + '.',
-      'Keep it short, concrete and in plain words. Suggest, do not decide for me. If something is unclear, ask me one question instead of guessing.'
-    ].join('\n');
+      'This week\'s question: ' + f(w.question),
+      'The sign I am looking for: ' + f(w.sign)
+    ];
+    if (kind === 'conversation') {
+      return ctx.concat(['', 'Help me prepare one conversation with a real person this week.',
+        'Give me five neutral questions about the last time this problem came up for them: what they did, what they tried, what it cost them.',
+        'No leading questions and no pitching. Then write one short, friendly sentence I can use to ask for the conversation.',
+        'If something above is unclear, ask me one question first instead of guessing.']).join('\n');
+    }
+    return ctx.concat(['Today\'s step: ' + f(d.step), 'My energy today: ' + (d.energy ? d.energy + ' of 5' : '(not checked)'), '',
+      'Give me three smaller versions of today\'s step. Each should take about ten minutes and still teach me something about this week\'s question.',
+      'Suggest, do not decide for me.']).join('\n');
   }
-
   function copyText(text) {
-    var done = function () { toast('Prompt copied. Paste your AI\'s draft back here.'); };
+    var done = function () { toast('Copied. Paste it into your own AI, then bring back what you want to keep.'); };
     var fallback = function () {
       var ta = document.createElement('textarea');
       ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); done(); } catch (e) { toast('Could not copy. Select the text by hand.'); }
+      try { document.execCommand('copy'); done(); } catch (e) { toast('Could not copy. Open the preview and select the text.'); }
       document.body.removeChild(ta);
     };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, fallback);
-    } else { fallback(); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
   }
 
-  /* ---------- small view pieces ---------- */
+  /* ---------- view pieces ---------- */
 
   var BACK = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l-6 6 6 6"/></svg>';
-
-  function backBtn(target) {
-    return '<button class="icon-btn" aria-label="Back" data-act="go" data-arg="' + target + '">' + BACK + '</button>';
-  }
-  function progress(n, of) {
-    var out = '<div class="progress" role="img" aria-label="Step ' + n + ' of ' + of + '">';
-    for (var i = 1; i <= of; i++) out += '<span' + (i <= n ? ' class="on"' : '') + '></span>';
-    return out + '</div>';
-  }
+  function backBtn(target) { return '<button class="icon-btn" aria-label="Back" data-act="go" data-arg="' + target + '">' + BACK + '</button>'; }
   function tabs(active) {
-    return '<nav class="tabs" aria-label="Main"><span class="brand rail-brand">WAL Studio</span>' +
-      '<button data-act="go" data-arg="today"' + (active === 'today' ? ' class="on"' : '') + '>Today</button>' +
-      '<button data-act="go" data-arg="cycle"' + (active === 'cycle' ? ' class="on"' : '') + '>This cycle</button>' +
-      '</nav>';
+    var t = [['today', 'Today'], ['week', 'This Week'], ['map', 'Growth Map']];
+    return '<nav class="tabs" aria-label="Main"><span class="brand rail-brand">Grove</span>' + t.map(function (x) {
+      return '<button data-act="go" data-arg="' + x[0] + '"' + (active === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>';
+    }).join('') + '</nav>';
   }
   function field(label, bind, value, placeholder, rows) {
     var id = 'f-' + bind.replace(/\./g, '-');
     return '<div class="field"><label class="label" for="' + id + '">' + esc(label) + '</label>' +
       '<textarea id="' + id + '" rows="' + (rows || 2) + '" data-bind="' + bind + '" placeholder="' + esc(placeholder || '') + '">' + esc(value) + '</textarea></div>';
+  }
+  function check(label, bind, on) {
+    return '<label class="check"><input type="checkbox" data-check="' + bind + '"' + (on ? ' checked' : '') + '><span>' + esc(label) + '</span></label>';
   }
   function confirmBox(kind, text) {
     if (S.ui.confirm !== kind) return '';
@@ -189,328 +238,223 @@
       '<button class="btn small-btn" data-act="' + kind + '" data-arg="yes">Yes, do it</button>' +
       '<button class="btn ghost small-btn" data-act="cancelConfirm">Cancel</button></div></div>';
   }
+  function levels(e) {
+    return '<div class="levels">' + LEVELS.map(function (name, i) {
+      var n = i + 1;
+      return '<button class="level' + (n === e ? ' on' : '') + '" aria-pressed="' + (n === e) + '" aria-label="' + name + '" data-act="energy" data-arg="' + n + '">' + n + '</button>';
+    }).join('') + '</div><div class="row between small muted"><span>Empty</span><span>Full</span></div>';
+  }
 
   /* ---------- screens ---------- */
 
   var screens = {};
 
-  screens.welcome = function () {
-    return '<section class="screen pad-bottom">' +
-      '<header class="top"><span class="brand">WAL Studio</span></header>' +
-      '<div class="grow center"><h1 class="big">One week. One small experiment.</h1>' +
-      '<p class="muted">Three short questions, then your first step. Skip any of them and fill them in later.</p></div>' +
-      confirmBox('example', 'This replaces what you have filled in so far. Load the example anyway?') +
-      '<div class="stack">' +
-      '<button class="btn" data-act="go" data-arg="setup1">Start</button>' +
-      '<button class="btn ghost" data-act="example">Load the WAL Studio example</button>' +
-      '<button class="link" data-act="skipSetup">Skip setup and go to Today</button>' +
-      '</div></section>';
-  };
-
-  function setupScreen(n, title, bind, value, placeholder, starterKey, promptKind) {
-    var back = n === 1 ? 'welcome' : 'setup' + (n - 1);
-    var starter = '';
-    if (starterKey && !S.ui.hideStarter[starterKey] && !has(value)) {
-      starter = '<div class="starter"><span class="tag"><span class="ring"></span>Starter suggestion</span>' +
-        '<p>' + esc(STARTER[starterKey]()) + '</p>' +
-        '<p class="small muted">A fixed starting point, not written by AI. Edit it after you use it.</p>' +
-        '<div class="row wrap">' +
-        '<button class="btn ghost small-btn" data-act="useStarter" data-arg="' + starterKey + '|' + bind + '">Use this</button>' +
-        '<button class="btn ghost small-btn" data-act="hideStarter" data-arg="' + starterKey + '">Write my own</button>' +
-        '</div></div>';
-    }
-    var ai = promptKind ? '<button class="link" data-act="copyPrompt" data-arg="' + promptKind + '">Copy a prompt for my own AI</button>' : '';
-    return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn(back) + progress(n, 3) + '<span style="width:32px"></span></header>' +
-      '<label for="setup-input"><h1>' + esc(title) + '</h1></label>' +
-      '<div class="grow">' +
-      '<textarea id="setup-input" class="plain" rows="4" data-bind="' + bind + '" placeholder="' + esc(placeholder) + '">' + esc(value) + '</textarea>' +
-      starter + ai + '</div>' +
-      '<div class="stack">' +
-      '<button class="btn" data-act="setupNext" data-arg="' + n + '">' + (n === 3 ? 'Save and go to Today' : 'Continue') + '</button>' +
-      '<button class="link" data-act="setupNext" data-arg="' + n + '">Skip for now</button>' +
-      '</div></section>';
-  }
-  screens.setup1 = function () { return setupScreen(1, 'What are you working on?', 'project.what', S.project.what, 'A sentence is enough.', null, null); };
-  screens.setup2 = function () { return setupScreen(2, 'What would you like to see by the end of the week?', 'goal', S.goal, 'Something you could point at.', 'goal', 'goal'); };
-  screens.setup3 = function () { return setupScreen(3, 'What is the first step?', 'card.firstStep', S.card.firstStep, 'Small enough to start today.', 'first', 'first'); };
-
-  function weekLine() {
-    return '<button class="stack" style="background:none;border:none;text-align:left;padding:0;gap:6px" data-act="go" data-arg="cycle">' +
-      '<span class="tag" style="color:var(--muted)"><span class="ring"></span>This week · ' + esc(dayLine()) + '</span>' +
-      '<span class="serif' + (has(S.goal) ? '' : ' empty') + '">' + (has(S.goal) ? esc(S.goal) : 'No goal yet. Add one when you are ready.') + '</span>' +
-      '</button>';
-  }
-  function stateLine(d) {
-    if (d.checkin !== 'done') return '<button class="link" style="align-self:flex-start" data-act="go" data-arg="checkin1">Check in after all</button>';
-    var dots = d.feelings.map(function (w) { return '<span class="c-' + famOf(w) + '"></span>'; }).join('');
-    var words = d.feelings.length ? d.feelings.join(', ') : 'No feeling picked';
-    var energy = d.energy ? ' · energy ' + d.energy + ' of 5' : '';
-    return '<button class="row" style="background:none;border:none;padding:0;min-height:44px" data-act="go" data-arg="checkin1">' +
-      '<span class="mini-dots" aria-hidden="true">' + dots + '</span><span class="small muted">' + esc(words + energy) + '</span></button>';
-  }
-
   screens.today = function () {
     var d = D();
-    var head = '<header class="top"><span class="brand">WAL Studio</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
+    var w = W(monday(today()));
+    var pl = personLine();
+    var head = '<header class="top"><span class="brand">Grove</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
+    var intro = hasAnyData() ? '' :
+      '<div class="notice stack"><p class="serif">Turn an idea you care about into an offer you can test.</p>' +
+      '<p class="small muted">Start with a step below. Nothing else needs filling in first.</p>' +
+      '<div class="row wrap"><button class="btn ghost small-btn" data-act="example">Load the Grove example</button>' +
+      '<button class="btn ghost small-btn" data-act="go" data-arg="week">Plan this week</button></div></div>';
+    var weekLine = '<button class="stack" style="background:none;border:none;text-align:left;padding:0;gap:6px" data-act="go" data-arg="week">' +
+      '<span class="label">This week\'s question</span>' +
+      '<span class="serif' + (has(w.question) ? '' : ' empty') + '">' + (has(w.question) ? esc(w.question) : 'No question yet. Add one in This Week.') + '</span>' +
+      '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span></button>';
     var body;
 
     if (S.paused) {
       body = '<div class="grow center"><h1 class="big">Paused.</h1><p class="muted">Nothing is lost. Pick it up when you are ready.</p>' +
-        '<button class="btn" data-act="resume">Resume this week</button></div>';
-    } else if (d.done || d.rest) {
+        '<button class="btn" data-act="resume">Resume</button></div>';
+    } else if (d.out) {
+      var tomorrow = planFor(addDays(today(), 1)).step;
       body = '<div class="grow center"><h1 class="big">' + (d.rest ? 'Rest counts too.' : 'You showed up today.') + '</h1>' +
-        (has(d.step) && d.done ? '<p class="muted">Done: ' + esc(d.step) + '</p>' : '') +
-        (has(S.queued) ? '<div class="notice" style="text-align:left"><span class="label">Tomorrow</span><p>' + esc(S.queued) + '</p></div>' : '') +
-        (dayNum() >= 7 ? '<button class="btn" data-act="go" data-arg="review">Open weekly review</button>' : '') +
-        '<button class="btn ghost" data-act="go" data-arg="cycle">Open this cycle</button>' +
+        (has(d.changes) ? '<div class="notice" style="text-align:left"><span class="label">What it changes</span><p>' + esc(d.changes) + '</p></div>' : '') +
+        (has(tomorrow) ? '<div class="notice" style="text-align:left"><span class="label">Tomorrow</span><p>' + esc(tomorrow) + '</p></div>' : '') +
+        (parse(today()).getDay() === 0 ? '<button class="btn" data-act="go" data-arg="review">Review this week</button>' : '') +
+        '<button class="btn ghost" data-act="go" data-arg="week">Open This Week</button>' +
         '<button class="link" data-act="reopen">Change today\'s entry</button></div>';
-    } else if (!d.checkin) {
-      body = '<div class="grow center" style="gap:24px"><h1 class="big">How are you arriving today?</h1>' +
-        '<div class="orb-wrap"><div class="orb-ring"><button class="orb" data-act="go" data-arg="checkin1">Check in</button></div></div>' +
-        '<button class="link" data-act="skipCheckin">Skip check-in, go to today\'s step</button></div>' + weekLine();
     } else {
-      var offer = '';
-      if (!has(d.step) && has(S.queued)) {
-        offer = '<div class="starter"><span class="label">' + (S.queuedFrom === 'setup' ? 'Your first step this week' : 'You wrote this for today') + '</span>' +
-          '<p>' + esc(S.queued) + '</p>' +
-          '<div class="row wrap"><button class="btn small-btn" data-act="adopt">Use this step</button></div></div>';
-      }
-      var editing = !has(d.step) || S.ui.editStep;
-      var stepHtml = editing
-        ? '<label class="sr" for="step-input">Today\'s step</label><textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write today\'s step">' + esc(d.step) + '</textarea>'
-        : '<p class="step">' + esc(d.step) + '</p>';
+      var energy = (!d.energy && !d.energySkipped)
+        ? '<div class="stack"><h1>How much energy do you have today?</h1>' + levels(0) +
+          '<button class="link" style="align-self:flex-start" data-act="skipEnergy">Skip</button></div>'
+        : '<button class="link" style="align-self:flex-start" data-act="redoEnergy">' + (d.energy ? 'Energy ' + d.energy + ' of 5 · change' : 'Energy skipped · check now') + '</button>';
+      var planned = has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '';
       var size = sizeLine(d.energy);
-      body = stateLine(d) +
-        '<div class="grow" style="justify-content:center">' + offer +
-        '<div class="card">' +
-        '<div><span class="label">This week</span><span class="small' + (has(S.goal) ? '' : ' empty') + '">' + (has(S.goal) ? esc(S.goal) : 'Not set') + '</span></div>' +
-        '<div><span class="label">Today</span>' + stepHtml + (size ? '<span class="small muted">' + esc(size) + '</span>' : '') + '</div>' +
-        '<div><span class="label">Counts as evidence</span><span class="small' + (has(S.card.evidence) ? '' : ' empty') + '">' + (has(S.card.evidence) ? esc(S.card.evidence) : 'Not set') + '</span></div>' +
-        '</div>' +
+      var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
+      body = energy + restNote +
+        '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
+        '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
+        (size ? '<span class="small muted">' + esc(size) + '</span>' : '') + '</div>' +
+        '<div><span class="small muted">' + esc(lineFor(d)) + '</span></div></div>' +
         '<button class="btn" data-act="didIt">I did it</button>' +
-        '<div class="row">' +
-        (editing ? '' : '<button class="btn ghost small-btn" style="flex:1" data-act="editStep">Edit step</button>') +
-        '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Not today</button></div>' +
-        '</div>';
+        '<div class="row wrap">' +
+        '<button class="btn ghost small-btn" style="flex:1" data-act="smaller">Make it smaller</button>' +
+        '<button class="btn ghost small-btn" style="flex:1" data-act="moveStep">Move to tomorrow</button>' +
+        '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
+        '<button class="link" data-act="go" data-arg="checkout">Check out without a step</button>';
     }
-    return '<section class="screen">' + head + body + '</section>' + tabs('today');
+    return '<section class="screen">' + head + intro + weekLine + body + '</section>' + tabs('today');
   };
 
-  screens.checkin1 = function () {
+  screens.checkout = function () {
     var d = D();
-    var q = S.ui.quad;
-    var quads = QUADS.map(function (x) {
-      return '<button class="quad c-' + x[0] + (q === x[0] ? ' on' : '') + '" aria-pressed="' + (q === x[0]) + '" data-act="quad" data-arg="' + x[0] + '"><b>' + x[1] + '</b><span>' + x[2] + '</span></button>';
+    var tm = addDays(today(), 1);
+    var summary = '';
+    if (has(d.planned) || has(d.step)) {
+      summary = '<div class="card">' +
+        (has(d.planned) ? '<div><span class="label">Planned</span><span class="small">' + esc(d.planned) + '</span></div>' : '') +
+        '<div><span class="label">Chose</span><span class="small' + (has(d.step) ? '' : ' empty') + '">' + (has(d.step) ? esc(d.step) + (d.shrunk ? ' (made smaller)' : '') : 'No step today') + '</span></div></div>';
+    }
+    return '<section class="screen pad-bottom">' +
+      '<header class="top">' + backBtn('today') + '<span class="small muted">Check-out</span></header>' +
+      '<h1>One thing I learned</h1>' + summary +
+      field('What actually happened?', 'day.happened', d.happened, 'What you saw or heard, in plain words.', 3) +
+      field('What does it change about my next step?', 'day.changes', d.changes, 'One line is enough.', 2) +
+      check('Someone other than me saw or tried it today', 'day.person', d.person) +
+      check('Count this note as evidence for this week\'s question', 'day.evidence', d.evidence) +
+      field('Tomorrow\'s step (optional)', 'plan.' + tm, planFor(tm).step, 'Leave it empty if you do not know yet.', 2) +
+      '<div style="flex:1"></div>' +
+      '<button class="btn" data-act="saveCheckout">Save today</button></section>';
+  };
+
+  screens.week = function () {
+    var cur = monday(today());
+    var wk = viewWeek();
+    var w = W(wk);
+    var isCur = wk === cur;
+    var pl = personLine();
+    var rows = weekDays(wk).map(function (k) {
+      var p = planFor(k); var rec = S.days[k];
+      var mark = rec && rec.out ? '<span class="dot filled' + (rec.evidence ? ' evidence' : '') + '" title="Checked out"></span>' : '<span class="dot' + (k === today() ? ' today' : '') + '"></span>';
+      var did = rec && rec.out && has(rec.happened) ? '<span class="small muted">' + (rec.person ? 'Seen by someone · ' : '') + esc(rec.happened) + '</span>' : '';
+      return '<div class="dayrow"><div class="row" style="gap:10px">' + mark + '<label class="label" for="p-' + k + '" style="width:54px">' + esc(shortDay(k)) + '</label>' +
+        '<input id="p-' + k + '" type="text" data-bind="plan.' + k + '" value="' + esc(p.step) + '" placeholder="' + (p.rest ? 'Rest' : 'One small step') + '">' +
+        '<button class="btn ghost small-btn rest' + (p.rest ? ' on' : '') + '" aria-pressed="' + p.rest + '" data-act="toggleRest" data-arg="' + k + '">Rest</button></div>' + did + '</div>';
     }).join('');
-    var words = '';
-    if (q) {
-      var list = FEEL[q].concat(S.custom.filter(function (c) { return c[1] === q; }).map(function (c) { return c[0]; }));
-      words = '<div class="row wrap">' + list.map(function (w) {
-        var on = d.feelings.indexOf(w) >= 0;
-        return '<button class="chip c-' + q + (on ? ' on' : '') + '" aria-pressed="' + on + '" data-act="word" data-arg="' + esc(w) + '">' + esc(w) + '</button>';
-      }).join('') + '</div>' +
-        '<div class="row"><label class="sr" for="own-word">Your own word</label>' +
-        '<input id="own-word" type="text" maxlength="24" data-bind="ui.word" value="' + esc(S.ui.word) + '" placeholder="Or type your own word" style="border-radius:999px;min-height:48px;padding:0 18px">' +
-        '<button class="btn ghost small-btn" data-act="addWord">Add</button></div>';
-    } else {
-      words = '<p class="muted small" style="text-align:center">Tap the corner closest to you. You can pick from more than one.</p>';
-    }
-    return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('today') + progress(1, 2) + '<span style="width:32px"></span></header>' +
-      '<h1>What\'s closest to how you feel?</h1>' +
-      '<div class="grow">' +
-      '<div class="quads label" style="text-align:center"><span>Unpleasant</span><span>Pleasant</span></div>' +
-      '<div class="quads">' + quads + '</div>' + words + '</div>' +
-      '<div class="stack"><p class="small muted" style="text-align:center">' + (d.feelings.length ? 'Picked: ' + esc(d.feelings.join(', ')) + ' · up to three' : 'Pick up to three.') + '</p>' +
-      '<button class="btn" data-act="go" data-arg="checkin2">Continue</button>' +
-      '<button class="link" data-act="skipCheckin">Skip check-in</button></div></section>';
-  };
-
-  screens.checkin2 = function () {
-    var d = D();
-    var e = d.energy;
-    var color = !e ? 'transparent' : (e <= 2 ? 'var(--blue)' : (e === 3 ? 'var(--green)' : 'var(--gold)'));
-    var sizePx = e ? 40 + e * 30 : 0;
-    var levels = LEVELS.map(function (name, i) {
-      var n = i + 1;
-      return '<button class="level' + (n === e ? ' on' : '') + '" aria-pressed="' + (n === e) + '" aria-label="' + name + '" data-act="energy" data-arg="' + n + '">' + n + '</button>';
-    }).join('');
-    return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('checkin1') + progress(2, 2) + '<span style="width:32px"></span></header>' +
-      '<h1>How much energy do you have?</h1>' +
-      '<div class="grow center"><div class="energy-ring" aria-hidden="true"><div class="energy-dot" style="width:' + sizePx + 'px;height:' + sizePx + 'px;background:' + color + '"></div></div>' +
-      '<p class="serif">' + (e ? LEVELS[e - 1] : 'Pick a number') + '</p></div>' +
-      '<div class="stack"><div class="levels">' + levels + '</div>' +
-      '<div class="row between small muted"><span>Empty</span><span>Full</span></div>' +
-      '<p class="small muted" style="text-align:center">This only changes the size of today\'s step.</p>' +
-      '<button class="btn" data-act="checkinDone">Continue</button></div></section>';
-  };
-
-  screens.why = function () {
-    var d = D();
-    return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('checkin2') + '<button class="link" data-act="go" data-arg="today">Skip to my step</button></header>' +
-      '<h1>Low is data, not a verdict.</h1>' +
-      '<div class="grow">' +
-      field('What is keeping you where you are today?', 'day.why1', d.why1, 'Say it plainly.', 3) +
-      field('If you were sure it would go fine, what is the smallest thing you would try?', 'day.why2', d.why2, 'This can become today\'s step.', 3) +
-      '<p class="small muted">Optional. Saved in this browser only.</p></div>' +
-      '<div class="stack"><button class="btn" data-act="whyDone">Show me today\'s step</button>' +
-      '<button class="link" data-act="rest">Rest today instead</button></div></section>';
-  };
-
-  screens.after = function () {
-    var d = D();
-    return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('today') + '<span class="small muted">Afterwards</span></header>' +
-      '<div class="grow">' +
-      '<div class="seg" role="group" aria-label="Kind of note">' +
-      '<button class="' + (d.kind === 'evidence' ? 'on' : '') + '" aria-pressed="' + (d.kind === 'evidence') + '" data-act="kind" data-arg="evidence">Evidence</button>' +
-      '<button class="' + (d.kind === 'blocker' ? 'on' : '') + '" aria-pressed="' + (d.kind === 'blocker') + '" data-act="kind" data-arg="blocker">Blocker</button></div>' +
-      field('What happened?', 'day.evidence', d.evidence, 'What you saw or heard, in plain words.', 3) +
-      field('What came up? Take it as data.', 'day.learned', d.learned, 'One honest sentence is enough.', 3) +
-      field('What is tomorrow\'s step?', 'queued', S.queued, 'Leave it empty if you do not know yet.', 2) +
-      '</div>' +
-      '<button class="btn" data-act="saveAfter">Save today</button></section>';
-  };
-
-  screens.cycle = function () {
-    var s = start();
-    var dots = '';
-    for (var i = 0; i < 7; i++) {
-      var k = addDays(s, i);
-      var rec = S.days[k];
-      var cls = 'dot';
-      if (rec && (rec.done || rec.rest || rec.checkin)) {
-        cls += ' filled' + (rec.feelings[0] ? ' c-' + famOf(rec.feelings[0]) : '');
-        if (has(rec.evidence) && rec.kind === 'evidence') cls += ' evidence';
-      }
-      if (k === today()) cls += ' today';
-      dots += '<span class="' + cls + '"></span>';
-    }
-    var obs = observations();
-    var obsHtml = obs.length ? '<div class="list">' + obs.map(function (o) {
-      return '<div><span class="bullet' + (o.fam ? ' c-' + o.fam : '') + '"></span><span><span class="small muted">' + esc(nice(o.date)) + ' · ' + (o.kind === 'blocker' ? 'Blocker' : 'Evidence') + '</span><br>' + esc(o.text) + '</span></div>';
-    }).join('') + '</div>' : '<p class="muted">Nothing yet. It starts with today\'s step.</p>';
+    var rings = S.rings.length ? '<div class="list">' + S.rings.slice().reverse().map(function (r) {
+      return '<div><span class="bullet c-gold"></span><span><span class="small muted">' + esc(range(r.week)) + ' · ' + esc(r.decisionLabel) + '</span><br>' +
+        (has(r.question) ? esc(r.question) + '<br>' : '') + (has(r.reason) ? '<span class="small muted">' + esc(r.reason) + '</span>' : '') + '</span></div>';
+    }).join('') + '</div>' : '<p class="muted">A finished review becomes a Growth Ring here.</p>';
+    var card = function (kind, title, text) {
+      return '<div class="starter"><span class="brand">' + title + '</span><p class="small muted">' + text + '</p>' +
+        '<details><summary class="small">See exactly what will be copied</summary><pre>' + esc(buildPrompt(kind)) + '</pre></details>' +
+        '<div class="row"><button class="btn ghost small-btn" data-act="copyPrompt" data-arg="' + kind + '">Copy for my own AI</button></div></div>';
+    };
 
     return '<section class="screen wide">' +
-      '<header class="top"><span class="brand">This cycle</span><span class="small muted">' + esc(dayLine()) + '</span></header>' +
+      '<header class="top"><span class="brand">' + (isCur ? 'This Week' : 'Next Week') + '</span><span class="small muted">' + esc(range(wk)) + '</span></header>' +
       (S.ui.note ? '<div class="notice">' + esc(S.ui.note) + '</div>' : '') +
+      '<div class="seg" role="group" aria-label="Which week">' +
+      '<button class="' + (isCur ? 'on' : '') + '" aria-pressed="' + isCur + '" data-act="showWeek" data-arg="' + cur + '">This week</button>' +
+      '<button class="' + (!isCur ? 'on' : '') + '" aria-pressed="' + !isCur + '" data-act="showWeek" data-arg="' + addDays(cur, 7) + '">Plan next week</button></div>' +
       '<div class="cols"><div class="g g1">' +
-      field('By the end of the week I would like to see', 'goal', S.goal, 'Something you could point at.', 2) +
-      '<div class="stack"><div class="dots" role="img" aria-label="Seven days of this cycle">' + dots + '</div>' +
-      '<span class="small muted">Colour is how you arrived. A ring means evidence that day.</span></div>' +
-      '<div class="field"><label class="label" for="start-date">Start date (optional)</label>' +
-      '<input id="start-date" type="date" data-bind="startDate" value="' + esc(S.startDate) + '">' +
-      '<span class="small muted">Started ' + esc(nice(s)) + ' · review on ' + esc(nice(addDays(s, 6))) + '</span></div>' +
-      '<button class="btn ghost" data-act="go" data-arg="review">Weekly review · ' + esc(nice(addDays(s, 6))) + '</button>' +
+      field('One question or outcome for the week', 'week.question', w.question, 'What do you want to find out?', 2) +
+      field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
+      field('Who will see or try it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
+      (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' : '') +
+      '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
+      (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">Review this week</button>' : '') +
       '</div><div class="g g2">' +
-
-      '<div class="section"><span class="brand">Week one card</span>' +
-      field('What I want to find out', 'card.learn', S.card.learn, '', 2) +
-      field('How I will try', 'card.how', S.card.how, '', 2) +
-      field('What counts as evidence', 'card.evidence', S.card.evidence, '', 2) +
-      field('First step', 'card.firstStep', S.card.firstStep, '', 2) +
-      field('What I do myself, and where AI helps', 'card.mine', S.card.mine, '', 2) +
-      '<div class="starter"><span class="tag"><span class="ring"></span>Starter suggestions</span>' +
-      '<p class="small muted">Fills only the empty lines with fixed starting points, not written by AI. Edit them afterwards.</p>' +
-      '<div class="row wrap"><button class="btn ghost small-btn" data-act="fillCard">Fill the blanks</button>' +
-      '<button class="btn ghost small-btn" data-act="copyPrompt" data-arg="card">Copy a prompt for my own AI</button></div></div></div>' +
-
-      '<div class="section"><span class="brand">Your project</span>' +
-      field('What are you working on?', 'project.what', S.project.what, '', 2) +
-      field('Who is it for? That person can be you.', 'project.who', S.project.who, '', 2) +
-      field('What can you realistically make room for this week?', 'project.room', S.project.room, '', 2) +
-      field('What would you like to be able to do yourself?', 'project.learn', S.project.learn, 'Change the prototype, run a first interview, use AI for one step…', 2) +
-      '</div>' +
+      '<div class="section"><span class="brand">AI Tool Shed</span>' +
+      '<p class="small muted">Grove has no AI built in yet. These cards copy a prompt with your notes in it, for the AI you already use.</p>' +
+      card('conversation', 'Prepare a real user conversation', 'Five neutral questions about the last time the problem came up, and a sentence to ask for the talk.') +
+      card('smaller', 'Make this step smaller', 'Three ten-minute versions of today\'s step that can still teach you something.') + '</div>' +
+      '<div class="section"><span class="brand">Project notes</span>' +
+      field('What are you working on?', 'project.what', S.project.what, 'A sentence is enough.', 2) +
+      field('Who is it for? That person can be you.', 'project.who', S.project.who, '', 2) + '</div>' +
       '</div><div class="g g3">' +
-
-      '<div class="section"><span class="brand">What you have observed</span>' + obsHtml + '</div>' +
-
+      '<div class="section"><span class="brand">Growth Rings</span>' + rings + '</div>' +
       '<div class="section"><span class="brand">Your data</span>' +
-      '<p class="small muted">Saved in this browser only. Nothing is sent anywhere.</p>' +
-      confirmBox('example', 'This replaces what you have filled in so far. Load the example anyway?') +
+      '<p class="small muted">Saved in this browser only. Nothing is sent anywhere. Export to move it to another device, then import it there.</p>' +
+      confirmBox('example', 'This replaces what you have written so far. Load the example anyway?') +
       confirmBox('clear', 'This deletes everything saved in this browser. It cannot be undone.') +
+      confirmBox('importData', 'Importing replaces what is saved in this browser. Continue?') +
       '<div class="row wrap"><button class="btn ghost small-btn" data-act="exportData">Export</button>' +
+      '<button class="btn ghost small-btn" data-act="importData">Import</button>' +
       '<button class="btn ghost small-btn" data-act="example">Load example</button>' +
-      '<button class="btn ghost small-btn" data-act="clear">Clear everything</button></div></div>' +
-      '</div></div>' +
-      '</section>' + tabs('cycle');
+      '<button class="btn ghost small-btn" data-act="clear">Clear everything</button></div>' +
+      '<input id="import-file" type="file" accept="application/json,.json" class="sr" tabindex="-1" aria-label="Import a Grove export file"></div>' +
+      '</div></div></section>' + tabs('week');
   };
 
   screens.review = function () {
-    var obs = observations();
-    var evidenceCount = obs.filter(function (o) { return o.kind === 'evidence'; }).length;
-    var setOut = has(S.card.learn) ? S.card.learn : S.goal;
-    var cant = evidenceCount < 3
-      ? '<div class="notice stack"><span class="tag"><span class="ring"></span>Can\'t tell yet</span>' +
-        '<p>' + evidenceCount + ' piece' + (evidenceCount === 1 ? '' : 's') + ' of evidence so far. Fewer than three is too thin to lean on. You can still decide.</p></div>'
-      : '';
+    var wk = reviewWeek();
+    var w = W(wk);
+    var notes = notesIn(wk);
+    var withNote = notes.filter(function (n) { return has(n.happened); });
+    var evidence = notes.filter(function (n) { return n.evidence && has(n.happened); }).length;
+    var people = notes.filter(function (n) { return n.person; }).length;
+    var steps = notes.filter(function (n) { return has(n.step) && !n.rest; }).length;
+    var notice = '';
+    if (!people) {
+      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>Nobody else saw it</span><p>No one other than you saw or tried the work this week. That is the first thing to change next week.</p></div>';
+    } else if (evidence < 3) {
+      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>Can\'t tell yet</span><p>' + evidence + ' note' + (evidence === 1 ? '' : 's') + ' counted as evidence. Fewer than three is thin. You can still decide.</p></div>';
+    }
     var seg = DECISIONS.map(function (x) {
       var on = S.review.decision === x[0];
       return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-act="decision" data-arg="' + x[0] + '">' + x[1] + '</button>';
     }).join('');
     return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('cycle') + '<span class="small muted">Weekly review · ' + esc(nice(addDays(start(), 6))) + '</span></header>' +
-      '<h1>One week in. What did you see?</h1>' +
-      '<div class="two">' +
-      '<div><span class="label">You set out to learn</span><span' + (has(setOut) ? '' : ' class="empty"') + '>' + (has(setOut) ? esc(setOut) : 'Not set') + '</span></div>' +
-      '<div><span class="label">What you observed</span>' + (obs.length ? obs.map(function (o) {
-        return '<span><span class="small muted">' + (o.kind === 'blocker' ? 'Blocker' : 'Evidence') + '</span><br>' + esc(o.text) + '</span>';
+      '<header class="top">' + backBtn('week') + '<span class="small muted">Review · ' + esc(range(wk)) + '</span></header>' +
+      '<h1>What did the week show you?</h1>' +
+      '<div class="two"><div><span class="label">The question</span><span' + (has(w.question) ? '' : ' class="empty"') + '>' + (has(w.question) ? esc(w.question) : 'Not set') + '</span>' +
+      (has(w.sign) ? '<span class="small muted">Sign: ' + esc(w.sign) + '</span>' : '') + '</div>' +
+      '<div><span class="label">What happened</span>' + (withNote.length ? withNote.map(function (n) {
+        return '<span><span class="small muted">' + esc(shortDay(n.date)) + (n.evidence ? ' · evidence' : '') + (n.person ? ' · seen by someone' : '') + '</span><br>' + esc(n.happened) + '</span>';
       }).join('') : '<span class="empty">Nothing written down yet</span>') + '</div></div>' +
-      cant +
-      '<p class="serif">What do you want to do with this? Your call.</p>' +
-      '<div class="seg" style="flex-wrap:wrap" role="group" aria-label="Decision">' + seg + '</div>' +
+      '<p class="small muted">' + steps + ' day' + (steps === 1 ? '' : 's') + ' with a step · someone else saw it on ' + people + ' day' + (people === 1 ? '' : 's') + '</p>' +
+      notice +
+      '<p class="serif">What do you want to do next? Your call.</p>' +
+      '<div class="seg" role="group" aria-label="Decision">' + seg + '</div>' +
       field('Why?', 'review.reason', S.review.reason, 'One or two sentences in your own words.', 3) +
       '<div style="flex:1"></div>' +
-      '<button class="btn" data-act="saveReview">Save review</button></section>';
+      '<button class="btn" data-act="saveReview">Save as a Growth Ring</button></section>';
+  };
+
+  screens.map = function () {
+    return '<section class="screen">' +
+      '<header class="top"><span class="brand">Growth Map</span><span class="small muted">Optional reading</span></header>' +
+      '<p class="muted">Five short pages. Open one when it is useful. You do not need them to use Grove.</p>' +
+      MAP.map(function (m, i) {
+        return '<details class="mapstep"><summary><span class="label">' + (i + 1) + ' · ' + m.name + '</span><span class="serif">' + m.title + '</span></summary>' +
+          '<div class="stack">' +
+          '<div><span class="label">Open it when</span><p>' + esc(m.when) + '</p></div>' +
+          '<div><span class="label">Write down</span><p>' + esc(m.write) + '</p></div>' +
+          '<div><span class="label">Try it</span><p>' + esc(m.tryIt) + '</p></div>' +
+          '<div><span class="label">AI can help</span><p>' + esc(m.ai) + '</p></div>' +
+          '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="useQuestion" data-arg="' + i + '">Use as this week\'s question</button>' +
+          '</div></details>';
+      }).join('') + '</section>' + tabs('map');
   };
 
   /* ---------- actions ---------- */
 
-  function go(screen) { S.screen = screen; S.ui.confirm = ''; if (screen !== 'cycle') S.ui.note = ''; render(); }
+  function go(screen) {
+    S.screen = screen; S.ui.confirm = '';
+    if (screen !== 'week') { S.ui.note = ''; S.ui.viewWeek = ''; }
+    render();
+  }
 
   function loadExample() {
-    var t = today();
+    var t = today(); var wk = monday(t);
     S = blank();
-    S.setupDone = true; S.firstDay = t; S.screen = 'today';
-    S.project = {
-      what: 'WAL Studio: a founding journal that sizes each day\'s step to my energy.',
-      who: 'Women solo founders. This week, me.',
-      room: 'About 30 minutes a day.',
-      learn: 'Change the prototype myself and run my first user interview.'
+    S.project = { what: 'Grove: a journal that helps women turn an idea into an offer they can test.', who: 'Independent professionals who want to turn what they know into a small product. This week, me.' };
+    S.weeks[wk] = {
+      question: 'Does planning one small step a day change what I actually do next?',
+      sign: 'A note, in my own words, of a day when the step I took was not the one I had planned.',
+      who: 'One WAL builder who has something she can test this week.',
+      plan: {}
     };
-    S.goal = 'One real moment, written down, where WAL Studio changed what I did next.';
-    S.card = {
-      learn: 'Whether a check-in plus one sized step changes what I actually do next.',
-      how: 'Use WAL Studio on WAL Studio itself for seven days.',
-      evidence: 'A note, in my own words, of a day when the step I took was not the one I had planned.',
-      firstStep: 'Open Today, check in, and write down the one step I would otherwise have skipped.',
-      mine: 'I do the daily step and the notes myself. AI can help me draft three neutral interview questions.'
-    };
-    S.queued = S.card.firstStep; S.queuedFrom = 'setup';
+    S.weeks[wk].plan[t] = { step: 'Open Grove, check my energy, and write down the one step I would otherwise skip.', rest: false };
+    S.weeks[wk].plan[addDays(t, 1)] = { step: 'Ask one builder to try Today on her own project while I watch.', rest: false };
   }
 
   var acts = {
     go: function (arg) { go(arg); },
-    skipSetup: function () { S.setupDone = true; if (!S.firstDay) S.firstDay = today(); go('today'); },
-    setupNext: function (arg) {
-      var n = Number(arg);
-      if (n < 3) return go('setup' + (n + 1));
-      S.setupDone = true; if (!S.firstDay) S.firstDay = today();
-      if (has(S.card.firstStep)) { S.queued = S.card.firstStep.trim(); S.queuedFrom = 'setup'; }
-      go('today');
-    },
-    useStarter: function (arg) {
-      var parts = arg.split('|'); setPath(parts[1], STARTER[parts[0]]()); render();
-      var el = document.getElementById('setup-input'); if (el) el.focus();
-    },
-    hideStarter: function (arg) {
-      S.ui.hideStarter[arg] = true; render();
-      var el = document.getElementById('setup-input'); if (el) el.focus();
-    },
-    copyPrompt: function (arg) { copyText(buildPrompt(arg)); },
     example: function (arg) {
       if (hasAnyData() && arg !== 'yes') { S.ui.confirm = 'example'; return render(); }
       loadExample(); render(); toast('Example loaded. Everything in it can be edited.');
@@ -519,83 +463,81 @@
       if (arg !== 'yes') { S.ui.confirm = 'clear'; return render(); }
       S = blank(); render(); toast('Everything cleared.');
     },
+    importData: function (arg) {
+      if (hasAnyData() && arg !== 'yes') { S.ui.confirm = 'importData'; return render(); }
+      S.ui.confirm = ''; var el = document.getElementById('import-file'); if (el) el.click();
+    },
     cancelConfirm: function () { S.ui.confirm = ''; render(); },
     exportData: function () {
       var blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
       var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'wal-studio-' + today() + '.json';
+      a.href = URL.createObjectURL(blob); a.download = 'grove-' + today() + '.json';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
     },
-    skipCheckin: function () { var d = D(); if (d.checkin !== 'done') d.checkin = 'skipped'; go('today'); },
-    quad: function (arg) { S.ui.quad = arg; render(); },
-    word: function (arg) {
-      var d = D(); var i = d.feelings.indexOf(arg);
-      if (i >= 0) d.feelings.splice(i, 1); else { d.feelings.push(arg); if (d.feelings.length > 3) d.feelings.shift(); }
-      render();
-    },
-    addWord: function () {
-      var w = (S.ui.word || '').trim().slice(0, 24); var q = S.ui.quad;
-      if (!w || !q) return toast('Type a word first.');
-      var known = Object.keys(FEEL).some(function (f) { return FEEL[f].indexOf(w) >= 0; }) || S.custom.some(function (c) { return c[0] === w; });
-      if (!known) S.custom.push([w, q]);
-      var d = D();
-      if (d.feelings.indexOf(w) < 0) { d.feelings.push(w); if (d.feelings.length > 3) d.feelings.shift(); }
-      S.ui.word = ''; render();
-    },
-    energy: function (arg) { D().energy = Number(arg); render(); },
-    checkinDone: function () { var d = D(); d.checkin = 'done'; go(d.energy && d.energy <= 2 ? 'why' : 'today'); },
-    whyDone: function () {
-      var d = D();
-      if (!has(d.step) && !has(S.queued) && has(d.why2)) d.step = d.why2.trim();
-      go('today');
-    },
-    adopt: function () { var d = D(); d.step = S.queued; S.queued = ''; S.queuedFrom = ''; S.ui.editStep = false; render(); },
-    editStep: function () { S.ui.editStep = true; render(); var el = document.getElementById('step-input'); if (el) el.focus(); },
+    copyPrompt: function (arg) { copyText(buildPrompt(arg)); },
+    energy: function (arg) { var d = D(); d.energy = Number(arg); d.energySkipped = false; render(); },
+    skipEnergy: function () { D().energySkipped = true; render(); },
+    redoEnergy: function () { var d = D(); d.energy = 0; d.energySkipped = false; render(); },
     didIt: function () {
       var d = D();
-      if (!has(d.step)) return toast('Write today\'s step first.');
-      d.step = d.step.trim(); S.ui.editStep = false; go('after');
+      if (!has(d.step)) return toast('Write today\'s step first, or check out without one.');
+      d.step = d.step.trim(); go('checkout');
     },
-    rest: function () { var d = D(); d.rest = true; if (!d.checkin) d.checkin = 'skipped'; go('today'); },
-    reopen: function () { var d = D(); d.done = false; d.rest = false; render(); },
-    kind: function (arg) { D().kind = arg; render(); },
-    saveAfter: function () {
-      var d = D(); d.done = true; d.rest = false;
-      S.queued = (S.queued || '').trim(); S.queuedFrom = has(S.queued) ? 'yesterday' : '';
-      go('today');
+    smaller: function () {
+      var d = D(); d.shrunk = true; save();
+      toast('Cut it to the first ten minutes. Rewrite the step so it says only that.');
+      var el = document.getElementById('step-input'); if (el) el.focus();
     },
-    fillCard: function () {
-      var filled = 0;
-      [['learn', 'learn'], ['how', 'how'], ['evidence', 'evidence'], ['firstStep', 'first'], ['mine', 'mine']].forEach(function (p) {
-        if (!has(S.card[p[0]])) { S.card[p[0]] = STARTER[p[1]](); filled++; }
-      });
-      render(); toast(filled ? filled + ' line' + (filled === 1 ? '' : 's') + ' filled. Edit them to fit.' : 'Nothing was empty.');
+    moveStep: function () {
+      var d = D();
+      if (!has(d.step)) return toast('There is no step to move.');
+      var tm = addDays(today(), 1); var p = planFor(tm);
+      p.step = has(p.step) ? p.step + ' / ' + d.step.trim() : d.step.trim();
+      planFor(today()).step = ''; d.step = ''; d.planned = ''; d.moved = true;
+      render(); toast('Moved to ' + nice(tm) + '.');
     },
+    rest: function () { var d = D(); d.rest = true; d.out = true; go('today'); },
+    reopen: function () { var d = D(); d.out = false; d.rest = false; render(); },
+    saveCheckout: function () { var d = D(); d.out = true; d.rest = false; go('today'); },
+    showWeek: function (arg) { S.ui.viewWeek = arg === monday(today()) ? '' : arg; S.ui.note = ''; render(); },
+    toggleRest: function (arg) { var p = planFor(arg); p.rest = !p.rest; render(); },
     decision: function (arg) { S.review.decision = arg; render(); },
     saveReview: function () {
       var r = S.review;
-      if (!r.decision) return toast('Choose one of the four first.');
-      S.reviews.push({ date: today(), decision: r.decision, reason: (r.reason || '').trim(), goal: S.goal, card: Object.assign({}, S.card), observations: observations() });
-      var decision = r.decision;
-      S.review = { decision: '', reason: '' };
-      if (decision === 'keep') { S.startDate = today(); S.firstDay = today(); toast('A new week starts today.'); return go('today'); }
-      if (decision === 'adjust') {
-        S.startDate = today(); S.firstDay = today();
-        S.screen = 'cycle'; S.ui.note = 'A new week starts today. Change the card below to what you want to test next.'; return render();
-      }
+      if (!r.decision) return toast('Choose continue, adjust or pause first.');
+      var wk = reviewWeek(); var w = W(wk); var next = addDays(wk, 7);
+      var label = DECISIONS.filter(function (x) { return x[0] === r.decision; })[0][1];
+      S.rings.push({ week: wk, savedOn: today(), decision: r.decision, decisionLabel: label, reason: (r.reason || '').trim(),
+        question: w.question, sign: w.sign, notes: notesIn(wk).map(function (n) { return { date: n.date, happened: n.happened, changes: n.changes, person: n.person, evidence: n.evidence }; }) });
+      var decision = r.decision; S.review = { decision: '', reason: '' };
       if (decision === 'pause') { S.paused = true; return go('today'); }
-      S.goal = ''; S.card = blank().card; S.queued = ''; S.queuedFrom = ''; S.startDate = ''; S.firstDay = ''; S.setupDone = false;
-      toast('This cycle is closed. Your notes are kept.'); go('welcome');
+      var nw = W(next);
+      if (decision === 'continue') {
+        if (!has(nw.question)) nw.question = w.question;
+        if (!has(nw.sign)) nw.sign = w.sign;
+        if (!has(nw.who)) nw.who = w.who;
+      }
+      S.screen = 'week'; S.ui.confirm = '';
+      S.ui.viewWeek = next === monday(today()) ? '' : next;
+      S.ui.note = decision === 'continue' ? 'Saved as a Growth Ring. Same question for the next week. Change anything you like.' : 'Saved as a Growth Ring. Write the question you want to test next.';
+      render();
     },
-    resume: function () { S.paused = false; S.startDate = today(); S.firstDay = today(); render(); }
+    resume: function () { S.paused = false; render(); },
+    useQuestion: function (arg) {
+      var w = W(monday(today()));
+      if (has(w.question)) return toast('You already have a question this week. Change it in This Week.');
+      w.question = MAP[Number(arg)].question; save(); toast('Added to This Week. Edit it to fit.');
+    }
   };
 
-  function setPath(path, value) {
-    var p = path.split('.');
-    if (p.length === 1) { S[p[0]] = value; return; }
-    var root = p[0] === 'day' ? D() : S[p[0]];
-    root[p[1]] = value;
+  function setBind(b, v) {
+    var p = b.split('.');
+    if (p[0] === 'day') D()[p[1]] = v;
+    else if (p[0] === 'week') W(viewWeek())[p[1]] = v;
+    else if (p[0] === 'plan') planFor(p[1]).step = v;
+    else if (p[0] === 'project') S.project[p[1]] = v;
+    else if (p[0] === 'review') S.review[p[1]] = v;
   }
 
   app.addEventListener('click', function (e) {
@@ -603,17 +545,30 @@
     if (!el || !acts[el.dataset.act]) return;
     acts[el.dataset.act](el.dataset.arg, el);
   });
-  function onInput(e) {
+  app.addEventListener('input', function (e) {
     var b = e.target.dataset && e.target.dataset.bind;
     if (!b) return;
-    setPath(b, e.target.value); save();
-    if (b === 'startDate' && e.type === 'change') render();
-  }
-  app.addEventListener('input', onInput);
-  app.addEventListener('change', onInput);
+    setBind(b, e.target.value); save();
+  });
+  app.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.check) { setBind(t.dataset.check, t.checked); save(); return; }
+    if (t.id === 'import-file' && t.files && t.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var d = JSON.parse(String(reader.result));
+          if (!d || d.v !== 2 || typeof d.days !== 'object' || typeof d.weeks !== 'object') throw new Error('not a Grove export');
+          var base = blank();
+          ['project', 'weeks', 'days', 'rings', 'paused'].forEach(function (k) { if (d[k] !== undefined) base[k] = d[k]; });
+          S = base; S.screen = 'today'; render(); toast('Imported.');
+        } catch (err) { toast('That file is not a Grove export.'); }
+      };
+      reader.readAsText(t.files[0]);
+    }
+  });
 
   function render() {
-    if (!S.setupDone && ['welcome', 'setup1', 'setup2', 'setup3'].indexOf(S.screen) < 0) S.screen = 'welcome';
     var fn = screens[S.screen] || screens.today;
     app.innerHTML = fn();
     save();
