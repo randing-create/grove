@@ -25,6 +25,9 @@
     chev: '<path d="M6 9l6 6 6-6"/>',
     back: '<path d="M15 5l-7 7 7 7"/>'
   };
+  var LOGO = '<svg class="logo" aria-hidden="true" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="24" cy="24" r="16.3"/><circle cx="24" cy="24" r="10.8"/><circle cx="24" cy="24" r="5.3"/></g><ellipse cx="35.3" cy="10.8" rx="8.2" ry="4.1" transform="rotate(-45 35.3 10.8)" fill="#D9E76C" stroke="currentColor" stroke-width="2.4"/></svg>';
+  /* Set this to a public form link to add an "Open the feedback form" button on the feedback screen. */
+  var FEEDBACK_FORM = '';
   function svg(name, size) {
     return '<svg aria-hidden="true" width="' + (size || 26) + '" height="' + (size || 26) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICON[name] + '</svg>';
   }
@@ -288,7 +291,7 @@
   function backBtn(target) { return '<button class="icon-btn" aria-label="Back" data-act="go" data-arg="' + target + '">' + svg('back', 24) + '</button>'; }
   function tabs(active) {
     var t = [['today', 'Today'], ['week', 'This Week'], ['map', 'Growth Map']];
-    return '<nav class="tabs" aria-label="Main"><span class="brand rail-brand">Grove</span>' + t.map(function (x) {
+    return '<nav class="tabs" aria-label="Main"><span class="brand rail-brand">' + LOGO + 'Grove</span>' + t.map(function (x) {
       return '<button data-act="go" data-arg="' + x[0] + '"' + (active === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>';
     }).join('') + '</nav>';
   }
@@ -331,9 +334,9 @@
     var d = D();
     var w = W(monday(today()));
     var pl = personLine();
-    var head = '<header class="top"><span class="brand">Grove</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
+    var head = '<header class="top"><span class="brand">' + LOGO + 'Grove</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
     var intro = hasAnyData() ? '' :
-      '<div class="notice stack"><p class="serif">Turn an idea you care about into an offer you can test.</p>' +
+      '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><p class="serif">Turn an idea you care about into an offer you can test.</p>' +
       '<p class="small muted">Start with a step below. Nothing else needs filling in first.</p>' +
       '<div class="row wrap"><button class="btn ghost small-btn" data-act="example">Load the Grove example</button>' +
       '<button class="btn ghost small-btn" data-act="go" data-arg="week">Plan this week</button></div></div>';
@@ -491,7 +494,8 @@
       check('Include this week\'s question and my check-out notes', 'feedback.include', f.include) +
       '<details><summary class="small">What will be shared</summary><pre id="feedback-preview">' + esc(feedbackText()) + '</pre></details>' +
       '<div style="flex:1"></div>' +
-      '<button class="btn" data-act="shareFeedback">Share it</button>' +
+      (FEEDBACK_FORM ? '<a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="' + FEEDBACK_FORM + '" target="_blank" rel="noopener">Open the feedback form</a>' : '') +
+      '<button class="btn' + (FEEDBACK_FORM ? ' ghost' : '') + '" data-act="shareFeedback">Share it</button>' +
       '<button class="btn ghost" data-act="copyFeedback">Copy instead</button></section>';
   };
 

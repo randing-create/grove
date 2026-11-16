@@ -57,7 +57,9 @@ p { margin: 0; }
 .wrap { flex-wrap: wrap; }
 
 header.top { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
-.brand { font-weight: 600; letter-spacing: 0.01em; font-size: 18px; }
+.brand { font-weight: 600; letter-spacing: 0.01em; font-size: 18px; display: inline-flex; align-items: center; gap: 8px; }
+.logo { width: 28px; height: 28px; color: var(--primary); flex: none; }
+.logo-big .logo { width: 56px; height: 56px; }
 .small { font-size: 15px; }
 .muted { color: var(--muted); }
 .empty { color: var(--faint); }
