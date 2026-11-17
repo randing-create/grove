@@ -27,8 +27,9 @@
     back: '<path d="M15 5l-7 7 7 7"/>'
   };
   var LOGO = '<svg class="logo" aria-hidden="true" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="24" cy="24" r="16.3"/><circle cx="24" cy="24" r="10.8"/><circle cx="24" cy="24" r="5.3"/></g><ellipse cx="35.3" cy="10.8" rx="8.2" ry="4.1" transform="rotate(-45 35.3 10.8)" fill="#D9E76C" stroke="currentColor" stroke-width="2.4"/></svg>';
-  /* Set this to a public form link to add an "Open the feedback form" button on the feedback screen. */
-  var FEEDBACK_FORM = '';
+  /* The feedback relay (relay/feedback-worker.js). When set, "Send to Ran" posts feedback straight into
+     the Notion feedback table. When empty, Grove falls back to the share sheet. */
+  var FEEDBACK_ENDPOINT = '';
   function svg(name, size) {
     return '<svg aria-hidden="true" width="' + (size || 26) + '" height="' + (size || 26) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICON[name] + '</svg>';
   }
@@ -115,7 +116,8 @@
       project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '' },
       weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
-      feedback: { tried: '', stuck: '', change: '', include: false },
+      feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false },
+      usage: { prompts: 0, offers: 0 },
       ui: { confirm: '', viewWeek: '', note: '', theme: 'light', promptKind: '', promptFrom: 'week', lineIdx: 0 }
     };
   }
@@ -284,16 +286,43 @@
     };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
   }
+  function seenThisWeek() { var l = lastPerson(); return l && l >= monday(today()) ? 'Yes' : 'Not yet'; }
+  function recordedText() {
+    var wk = monday(today());
+    var days = weekDays(wk).map(function (k) { return S.days[k]; }).filter(Boolean);
+    var out = days.filter(function (d) { return d.out; }).length;
+    var energy = days.filter(function (d) { return d.energy; }).length;
+    var steps = days.filter(function (d) { return d.out && !d.rest && has(d.step); }).length;
+    var seen = days.filter(function (d) { return d.out && d.person; }).length;
+    var mapKeys = []; MAP.forEach(function (m) { mapKeys = mapKeys.concat(m.fields); });
+    var mapDone = mapKeys.filter(function (k) { return has(fieldValue(k)); }).length;
+    var u = S.usage || {};
+    return ['This week: checked out ' + out + ' of 7 days, energy check on ' + energy + ', ' + steps + ' day' + (steps === 1 ? '' : 's') + ' with a step, seen by someone on ' + seen + '.',
+      'Weekly question written: ' + (has(W(wk).question) ? 'yes' : 'no') + '. Growth Rings saved: ' + S.rings.length + '.',
+      'Growth Map answers: ' + mapDone + ' of ' + mapKeys.length + '. Prompts copied: ' + (u.prompts || 0) + '. Offer cards shared: ' + (u.offers || 0) + '.'].join('\n');
+  }
+  function sharedNotes() {
+    if (!S.feedback.include) return '';
+    var w = W(monday(today()));
+    var out = ['This week\'s question: ' + (has(w.question) ? w.question.trim() : '(not written)')];
+    notesIn(monday(today())).forEach(function (n) {
+      if (has(n.happened) || has(n.changes)) out.push(shortDay(n.date) + ': ' + (n.happened || '').trim() + (has(n.changes) ? ' → ' + n.changes.trim() : ''));
+    });
+    return out.join('\n');
+  }
+  function feedbackPayload() {
+    var f = S.feedback;
+    return { name: (f.name || '').trim(), contact: (f.contact || '').trim(), again: f.again || '', tried: (f.tried || '').trim(), stuck: (f.stuck || '').trim(),
+      change: (f.change || '').trim(), seen: seenThisWeek(), recorded: recordedText(), notes: sharedNotes() };
+  }
   function feedbackText() {
-    var f = S.feedback; var w = W(monday(today()));
-    var v = function (s) { return has(s) ? s.trim() : '(left empty)'; };
-    var out = ['Grove feedback · ' + nice(today()), '', 'What I tried: ' + v(f.tried), 'Where I stopped or got stuck: ' + v(f.stuck), 'What I would change: ' + v(f.change)];
-    if (f.include) {
-      out.push('', 'This week\'s question: ' + v(w.question));
-      notesIn(monday(today())).forEach(function (n) {
-        if (has(n.happened) || has(n.changes)) out.push(shortDay(n.date) + ': ' + (n.happened || '').trim() + (has(n.changes) ? ' → ' + n.changes.trim() : ''));
-      });
-    }
+    var p = feedbackPayload();
+    var v = function (s) { return has(s) ? s : '(left empty)'; };
+    var out = ['Grove feedback · ' + nice(today()) + (p.name ? ' · ' + p.name : ''), '',
+      'Would open Grove again next week: ' + v(p.again), 'What I tried: ' + v(p.tried), 'Where I stopped or got stuck: ' + v(p.stuck), 'What I would change: ' + v(p.change),
+      'Someone else saw my work this week: ' + p.seen, '', 'Recorded by Grove:', p.recorded];
+    if (p.contact) out.push('', 'Reach me: ' + p.contact);
+    if (p.notes) out.push('', p.notes);
     return out.join('\n');
   }
 
@@ -570,18 +599,26 @@
 
   screens.feedback = function () {
     var f = S.feedback;
+    var again = [['Yes', 'Yes'], ['Maybe', 'Maybe'], ['No', 'No']].map(function (x) {
+      var on = f.again === x[0];
+      return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-act="again" data-arg="' + x[0] + '">' + x[1] + '</button>';
+    }).join('');
+    var where = FEEDBACK_ENDPOINT ? 'It goes straight to Ran\'s private Notion page. Nothing else leaves this device.' : 'You choose where to send it, for example a message to Ran.';
     return '<section class="screen pad-bottom">' +
       '<header class="top">' + backBtn('week') + '<span class="small muted">Feedback</span></header>' +
       '<h1>Tell Ran how it went</h1>' +
-      '<p class="muted">Nothing is sent automatically. You write it here, then choose where to send it.</p>' +
-      field('What did you try in Grove?', 'feedback.tried', f.tried, '', 2) +
+      '<p class="muted">Grove has already noted how you used it this week. Add what only you can say. Every question is optional.</p>' +
+      '<div class="stack" style="gap:8px"><span class="label">Would you open Grove again next week?</span><div class="seg" role="group" aria-label="Would you open Grove again next week?">' + again + '</div></div>' +
+      field('What did you try?', 'feedback.tried', f.tried, 'A step, a prompt card, the offer card…', 2) +
       field('Where did you stop or get stuck?', 'feedback.stuck', f.stuck, '', 2) +
       field('What would you change?', 'feedback.change', f.change, '', 2) +
-      check('Include this week\'s question and my check-out notes', 'feedback.include', f.include) +
-      '<details><summary class="small">What will be shared</summary><pre id="feedback-preview">' + esc(feedbackText()) + '</pre></details>' +
+      field('Your name or nickname', 'feedback.name', f.name, 'Remembered for next time', 1) +
+      field('How can Ran reach you? (optional)', 'feedback.contact', f.contact, 'Remembered for next time', 1) +
+      check('Also share this week\'s question and my check-out notes', 'feedback.include', f.include) +
+      '<details><summary class="small">What will be sent</summary><pre id="feedback-preview">' + esc(feedbackText()) + '</pre></details>' +
+      '<p class="small muted">' + where + '</p>' +
       '<div style="flex:1"></div>' +
-      (FEEDBACK_FORM ? '<a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="' + FEEDBACK_FORM + '" target="_blank" rel="noopener">Open the feedback form</a>' : '') +
-      '<button class="btn' + (FEEDBACK_FORM ? ' ghost' : '') + '" data-act="shareFeedback">Share it</button>' +
+      '<button class="btn" id="send-feedback" data-act="sendFeedback">' + (FEEDBACK_ENDPOINT ? 'Send to Ran' : 'Share it') + '</button>' +
       '<button class="btn ghost" data-act="copyFeedback">Copy instead</button></section>';
   };
 
@@ -719,6 +756,7 @@
     openPrompt: function (arg) { var p = arg.split('|'); S.ui.promptKind = p[0]; S.ui.promptFrom = p[1]; go('prompt'); },
     copyPrompt: function (arg) {
       if (!promptFilled(arg)) return toast('Answer at least one question first, so the prompt is about you.');
+      S.usage = S.usage || {}; S.usage.prompts = (S.usage.prompts || 0) + 1; save();
       copyText(buildPrompt(arg), 'Copied. Paste it into your own AI, then bring back what you want to keep.');
     },
     invite: function () {
@@ -728,12 +766,27 @@
       if (navigator.share) navigator.share({ text: text + '\n' + url }).catch(function () {});
       else copyText(text + ' ' + url, 'Invitation copied. Paste it into a message.');
     },
-    shareFeedback: function () {
-      var f = S.feedback;
-      if (!has(f.tried) && !has(f.stuck) && !has(f.change)) return toast('Write at least one line first.');
-      var text = feedbackText();
-      if (navigator.share) navigator.share({ title: 'Grove feedback', text: text }).catch(function () {});
-      else copyText(text, 'Copied. Paste it into a message to Ran.');
+    again: function (arg) { S.feedback.again = S.feedback.again === arg ? '' : arg; render(); },
+    sendFeedback: function (arg, el) {
+      var p = feedbackPayload();
+      if (!p.again && !p.tried && !p.stuck && !p.change) return toast('Pick an answer or write one line first.');
+      var share = function (msg) {
+        var text = feedbackText();
+        if (navigator.share) navigator.share({ text: text }).catch(function () {});
+        else copyText(text, msg || 'Copied. Paste it into a message to Ran.');
+      };
+      if (!FEEDBACK_ENDPOINT) return share();
+      if (el) { el.disabled = true; el.textContent = 'Sending…'; }
+      fetch(FEEDBACK_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) })
+        .then(function (r) { if (!r.ok) throw new Error('relay ' + r.status); return r.json(); })
+        .then(function () {
+          S.feedback.tried = ''; S.feedback.stuck = ''; S.feedback.change = ''; S.feedback.again = ''; S.feedback.include = false;
+          S.screen = 'week'; render(); toast('Sent to Ran. Thank you.');
+        })
+        .catch(function () {
+          if (el) { el.disabled = false; el.textContent = 'Send to Ran'; }
+          toast('Could not send right now. Nothing is lost. Try again, or copy it instead.');
+        });
     },
     copyFeedback: function () { copyText(feedbackText(), 'Copied. Paste it into a message to Ran.'); },
     setEnergy: function () {
@@ -743,11 +796,13 @@
     shareOffer: function () {
       var text = offerText();
       if (!text) return toast('Write at least one line first.');
+      S.usage = S.usage || {}; S.usage.offers = (S.usage.offers || 0) + 1; save();
       if (navigator.share) navigator.share({ title: 'An offer to try', text: text }).catch(function () {});
       else copyText(text, 'Copied. Paste it into a message.');
     },
     saveOfferImage: function () {
       if (!offerText()) return toast('Write at least one line first.');
+      S.usage = S.usage || {}; S.usage.offers = (S.usage.offers || 0) + 1; save();
       offerImage(function (blob) {
         if (!blob) return toast('Could not make the image on this device.');
         var file = null;
