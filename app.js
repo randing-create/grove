@@ -29,7 +29,7 @@
   var LOGO = '<svg class="logo" aria-hidden="true" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="24" cy="24" r="16.3"/><circle cx="24" cy="24" r="10.8"/><circle cx="24" cy="24" r="5.3"/></g><ellipse cx="35.3" cy="10.8" rx="8.2" ry="4.1" transform="rotate(-45 35.3 10.8)" fill="#D9E76C" stroke="currentColor" stroke-width="2.4"/></svg>';
   /* The feedback relay (relay/feedback-worker.js). When set, "Send to Ran" posts feedback straight into
      the Notion feedback table. When empty, Grove falls back to the share sheet. */
-  var FEEDBACK_ENDPOINT = '';
+  var FEEDBACK_ENDPOINT = 'https://grove-feedback.randing-work.workers.dev/';
   function svg(name, size) {
     return '<svg aria-hidden="true" width="' + (size || 26) + '" height="' + (size || 26) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICON[name] + '</svg>';
   }
