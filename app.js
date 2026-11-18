@@ -24,8 +24,14 @@
     refresh: '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     chev: '<path d="M6 9l6 6 6-6"/>',
-    back: '<path d="M15 5l-7 7 7 7"/>'
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    play: '<path d="M8 5.5v13l10.5-6.5z"/>',
+    pause: '<path d="M9 5.5v13M15 5.5v13"/>'
   };
+  /* Grounding pause: a short guided audio, played only when the person taps it. Replace pause.m4a with
+     Ran's recording (same name, or change this line). The current file is a text-to-speech placeholder. */
+  var PAUSE_AUDIO = 'pause.m4a';
+  var RESULTS = [['done', 'Did it'], ['part', 'Did part of it'], ['stuck', 'Got stuck'], ['changed', 'Changed the plan'], ['not', 'Did not get to it']];
   var LOGO = '<svg class="logo" aria-hidden="true" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="24" cy="24" r="16.3"/><circle cx="24" cy="24" r="10.8"/><circle cx="24" cy="24" r="5.3"/></g><ellipse cx="35.3" cy="10.8" rx="8.2" ry="4.1" transform="rotate(-45 35.3 10.8)" fill="#D9E76C" stroke="currentColor" stroke-width="2.4"/></svg>';
   /* The feedback relay (relay/feedback-worker.js). When set, "Send to Ran" posts feedback straight into
      the Notion feedback table. When empty, Grove falls back to the share sheet. */
@@ -146,7 +152,8 @@
         if (d && d.v === 2) {
           Object.keys(d).forEach(function (k) { base[k] = d[k]; });
           ['project', 'review', 'feedback', 'ui'].forEach(function (k) { base[k] = Object.assign({}, blank()[k], d[k] || {}); });
-          base.ui.confirm = '';
+          base.ui.confirm = ''; base.ui.pause = false; base.ui.editStep = false; base.ui.outDate = '';
+          if (base.screen === 'checkout') base.screen = 'today';
         }
       } else {
         var oldRaw = localStorage.getItem(OLD_KEY);
@@ -192,7 +199,8 @@
   }
   function D() {
     var t = today();
-    if (!S.days[t]) S.days[t] = { energy: 0, energySkipped: false, planned: '', step: '', shrunk: false, rest: false, happened: '', changes: '', person: false, evidence: false, out: false };
+    if (!S.days[t]) S.days[t] = { energy: 0, energySkipped: false, planned: '', step: '', shrunk: false, rest: false, happened: '', changes: '', person: false, evidence: false, out: false,
+      ready: false, startedAt: '', result: '', line: '' };
     var rec = S.days[t];
     var p = planFor(t).step || '';
     if (!rec.out && rec.planned !== p) {
@@ -200,6 +208,16 @@
       rec.planned = p;
     }
     return rec;
+  }
+  /* The day being checked out: today, or an earlier day that was started and never wrapped up. */
+  function outRec() { return (S.ui.outDate && S.days[S.ui.outDate]) || D(); }
+  function openYesterday() {
+    var y = addDays(today(), -1), r = S.days[y];
+    return r && r.startedAt && !r.out ? y : '';
+  }
+  function clock(isoTime) {
+    var t = new Date(isoTime);
+    return isNaN(t) ? '' : t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
   function viewWeek() { return S.ui.viewWeek || monday(today()); }
   function weekDays(wk) { var out = []; for (var i = 0; i < 7; i++) out.push(addDays(wk, i)); return out; }
@@ -237,13 +255,17 @@
     if (energy === 3) return 'Steady energy: about half an hour on the step that teaches you most.';
     return 'Good energy: a day for the step that teaches the most, like watching someone use it.';
   }
-  function lineFor(d) {
+  function linesFor(d) {
     var step = d.step || '';
     var kind = d.energy && d.energy <= 2 ? 'heavy'
       : (/invite|follow|price|pay|offer/i.test(step) ? 'inviting'
         : (/send|show|share|ask|post|call|message|email|meet|interview/i.test(step) ? 'showing' : 'testing'));
-    var list = LINES[kind].lines;
-    return list[(parse(today()).getDate() + (S.ui.lineIdx || 0)) % list.length];
+    return LINES[kind].lines;
+  }
+  /* Picked once a day and kept, so the same line is there when the person comes back. */
+  function lineFor(d) {
+    if (!has(d.line)) { var list = linesFor(d); d.line = list[parse(today()).getDate() % list.length]; }
+    return d.line;
   }
   function applyTheme() {
     var dark = S.ui.theme === 'dark';
@@ -457,6 +479,41 @@
       '<span class="serif' + (has(w.question) ? '' : ' empty') + '">' + (has(w.question) ? esc(w.question) : 'No question yet. Add one in This Week.') + '</span>' +
       '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span></span>' + weekRing(statsFor(monday(today())), 68) + '</button>';
     var body;
+    var yOpen = openYesterday();
+    var yNote = yOpen ? '<div class="notice stack"><p>Yesterday\'s step was started but not wrapped up.</p><div class="row"><button class="btn ghost small-btn" data-act="wrapUp" data-arg="' + yOpen + '">Wrap up yesterday</button></div></div>' : '';
+    var lineCard = function () {
+      return '<div class="mantra"><span class="label">A line for today</span><span class="serif">' + esc(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>';
+    };
+
+    if (!S.paused && !d.out && d.startedAt) {
+      /* Working: the step has started. Stays here after a reload or a later visit, until the person wraps up. */
+      var stepBlock = S.ui.editStep
+        ? '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' +
+          '<textarea id="step-input" class="plain" rows="3" data-bind="day.step">' + esc(d.step) + '</textarea></div>' +
+          '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="editStep">Done</button></div>'
+        : '<div class="stack" style="gap:8px"><span class="label">Working on</span><p class="serif step-now">' + esc(d.step) + '</p>' +
+          '<span class="small muted">Started at ' + esc(clock(d.startedAt)) + '</span></div>';
+      body = '<div class="stack working">' +
+        '<span class="pulse" aria-hidden="true"></span>' + stepBlock +
+        '<p class="serif muted line-quiet">' + esc(lineFor(d)) + '</p></div>' +
+        '<div style="flex:1"></div>' +
+        '<button class="btn" data-act="wrapUp">Wrap up for today</button>' +
+        (S.ui.editStep ? '' : '<button class="btn ghost" data-act="editStep">Change the step</button>') +
+        '<button class="link" data-act="unstart">I have not started yet</button>';
+      return '<section class="screen">' + head + yNote + body + FOOT + '</section>' + tabs('today');
+    }
+
+    if (!S.paused && !d.out && d.ready) {
+      /* Ready to begin: a quiet page before starting. */
+      body = '<div class="stack"><span class="label">Ready to begin</span>' +
+        '<p class="serif step-now">' + esc(d.step) + '</p>' +
+        (has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '') + '</div>' +
+        lineCard() + pausePanel() +
+        '<div style="flex:1"></div>' +
+        '<button class="btn" data-act="startStep">Start my step</button>' +
+        '<button class="link" data-act="backToCheckin">Change the step</button>';
+      return '<section class="screen">' + head + yNote + body + FOOT + '</section>' + tabs('today');
+    }
 
     if (S.paused) {
       body = '<div class="grow center"><h1 class="big">Paused.</h1><p class="muted">Nothing is lost. Pick it up when you are ready.</p>' +
@@ -466,6 +523,8 @@
       body = '<div class="grow center"><span class="donemark">' + svg('check', 44) + '</span>' +
         '<h1 class="big">' + (d.rest ? 'Rest counts too.' : 'You showed up today.') + '</h1>' +
         (has(d.step) && !d.rest ? '<p><span class="struck">' + esc(d.step) + '</span></p>' : '') +
+        (resultLabel(d.result) ? '<span class="pill">' + esc(resultLabel(d.result)) + '</span>' : '') +
+        (has(d.happened) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What happened</span><p>' + esc(d.happened) + '</p></div>' : '') +
         (has(d.changes) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What it changes</span><p>' + esc(d.changes) + '</p></div>' : '') +
         (has(tomorrow) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">Tomorrow</span><p>' + esc(tomorrow) + '</p></div>' : '') +
         (parse(today()).getDay() === 0 ? '<button class="btn" data-act="go" data-arg="review">Review this week</button>' : '') +
@@ -481,39 +540,83 @@
       var size = sizeLine(d.energy);
       var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
       body = energy + restNote +
-        '<div class="mantra"><span class="label">A line for today</span><span class="serif">' + esc(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>' +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
         (size ? '<span class="small muted">' + esc(size) + '</span>' : '') + '</div></div>' +
-        '<button class="btn" data-act="didIt">I did it</button>' +
+        '<button class="btn" data-act="confirmStep">This is my step</button>' +
         '<div class="row wrap">' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="smaller">Make it smaller</button>' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="moveStep">Move to tomorrow</button>' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
-        '<button class="link" data-act="go" data-arg="checkout">Check out without a step</button>';
+        '<button class="link" data-act="wrapUp">Just record today</button>';
     }
-    return '<section class="screen">' + head + intro + due + weekLine + body + FOOT + '</section>' + tabs('today');
+    return '<section class="screen">' + head + intro + due + yNote + weekLine + body + FOOT + '</section>' + tabs('today');
   };
 
+  function resultLabel(key) { var r = RESULTS.filter(function (x) { return x[0] === key; })[0]; return r ? r[1] : ''; }
+
+  /* The guided pause. The audio object lives outside the screen, so redrawing never cuts it off. */
+  var pauseAudio = null;
+  function getAudio() {
+    if (pauseAudio) return pauseAudio;
+    pauseAudio = new Audio(PAUSE_AUDIO);
+    pauseAudio.preload = 'metadata';
+    pauseAudio.addEventListener('timeupdate', updatePause);
+    pauseAudio.addEventListener('loadedmetadata', updatePause);
+    pauseAudio.addEventListener('play', updatePause);
+    pauseAudio.addEventListener('pause', updatePause);
+    pauseAudio.addEventListener('ended', function () { pauseAudio.currentTime = 0; S.ui.pauseEnded = true; if (S.ui.pause) render(); });
+    pauseAudio.addEventListener('error', function () { S.ui.pause = false; if (S.screen === 'today') render(); toast('The pause audio could not load. You can start without it.'); });
+    return pauseAudio;
+  }
+  function mmss(s) { s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function updatePause() {
+    var a = pauseAudio; if (!a) return;
+    var t = document.getElementById('pause-time'); if (t) t.textContent = mmss(a.currentTime) + (isFinite(a.duration) ? ' / ' + mmss(a.duration) : '');
+    var bar = document.getElementById('pause-bar'); if (bar) bar.style.width = (isFinite(a.duration) && a.duration ? a.currentTime / a.duration * 100 : 0) + '%';
+    var b = document.getElementById('pause-play');
+    if (b) { b.innerHTML = svg(a.paused ? 'play' : 'pause', 26); b.setAttribute('aria-label', a.paused ? 'Play' : 'Pause'); }
+    var blob = document.getElementById('pause-blob'); if (blob) blob.classList.toggle('breathing', !a.paused);
+  }
+  function stopPause() { if (pauseAudio) { pauseAudio.pause(); pauseAudio.currentTime = 0; } S.ui.pause = false; S.ui.pauseEnded = false; }
+  function pausePanel() {
+    if (!S.ui.pause) {
+      return '<button class="btn ghost pause-open" data-act="pauseOpen">' + svg('play', 20) + '<span>Grounding pause <span class="muted">· optional</span></span></button>';
+    }
+    var a = pauseAudio, playing = a && !a.paused;
+    return '<div class="pause-card stack" role="region" aria-label="Grounding pause">' +
+      '<div class="pause-head"><span class="label">Grounding pause</span><button class="link" data-act="pauseClose">Close</button></div>' +
+      '<div class="pause-row"><button id="pause-play" class="pause-play" data-act="pauseToggle" aria-label="' + (playing ? 'Pause' : 'Play') + '">' + svg(playing ? 'pause' : 'play', 26) + '</button>' +
+      '<span id="pause-blob" class="blob lv3 pause-blob' + (playing ? ' breathing' : '') + '" aria-hidden="true"></span>' +
+      '<span class="stack" style="gap:6px;flex:1"><span class="pause-track"><span id="pause-bar"></span></span><span id="pause-time" class="small muted">0:00</span></span></div>' +
+      '<p class="small muted">' + (S.ui.pauseEnded ? 'That is the pause. Start whenever you like.' : 'Stop whenever you want. Your step is waiting below.') + '</p></div>';
+  }
+
   screens.checkout = function () {
-    var d = D();
-    var tm = addDays(today(), 1);
+    var d = outRec();
+    var date = S.ui.outDate && S.days[S.ui.outDate] ? S.ui.outDate : today();
+    var tm = addDays(date, 1);
     var summary = '';
     if (has(d.planned) || has(d.step)) {
       summary = '<div class="card">' +
-        (has(d.planned) ? '<div><span class="label">Planned</span><span class="small">' + esc(d.planned) + '</span></div>' : '') +
-        '<div><span class="label">Chose</span><span class="small' + (has(d.step) ? '' : ' empty') + '">' + (has(d.step) ? esc(d.step) + (d.shrunk ? ' (made smaller)' : '') : 'No step today') + '</span></div></div>';
+        (has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<div><span class="label">Planned</span><span class="small">' + esc(d.planned) + '</span></div>' : '') +
+        '<div><span class="label">' + (has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? 'Chose' : 'Today\'s step') + '</span><span class="small' + (has(d.step) ? '' : ' empty') + '">' + (has(d.step) ? esc(d.step) + (d.shrunk ? ' (made smaller)' : '') : 'No step today') + '</span></div>' +
+        (d.startedAt ? '<div><span class="label">Started</span><span class="small">' + esc(clock(d.startedAt)) + (date !== today() ? ', ' + esc(nice(date)) : '') + '</span></div>' : '') + '</div>';
     }
+    var results = '<div class="stack" style="gap:10px"><span class="label">How did it go?</span><div class="seg chips">' + RESULTS.map(function (r) {
+      return '<button class="' + (d.result === r[0] ? 'on' : '') + '" data-act="result" data-arg="' + r[0] + '" aria-pressed="' + (d.result === r[0]) + '">' + r[1] + '</button>';
+    }).join('') + '</div></div>';
+    var instead = d.result === 'changed' ? field('What did you do instead?', 'day.step', d.step, 'The step you actually took.', 2) : '';
     return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('today') + '<span class="small muted">Check-out</span></header>' +
-      '<h1>One thing I learned</h1>' + summary +
+      '<header class="top">' + backBtn('today') + '<span class="small muted">Check-out' + (date !== today() ? ' · ' + esc(nice(date)) : '') + '</span></header>' +
+      '<h1>One thing I learned</h1>' + summary + results + instead +
       field('What actually happened?', 'day.happened', d.happened, 'What you saw or heard, in plain words.', 3) +
       field('What does it change about my next step?', 'day.changes', d.changes, 'One line is enough.', 2) +
       check('Someone other than me saw or tried it today', 'day.person', d.person) +
       check('Count this note as evidence for this week\'s question', 'day.evidence', d.evidence) +
-      field('Tomorrow\'s step (optional)', 'plan.' + tm, planFor(tm).step, 'Leave it empty if you do not know yet.', 2) +
+      field((date !== today() ? 'Step for ' + nice(tm) : 'Tomorrow\'s step') + ' (optional)', 'plan.' + tm, planFor(tm).step, 'Leave it empty if you do not know yet.', 2) +
       '<div style="flex:1"></div>' +
-      '<button class="btn" data-act="saveCheckout">Save today</button></section>';
+      '<button class="btn" data-act="saveCheckout">' + (date !== today() ? 'Save this day' : (d.out ? 'Save changes' : 'Save today')) + '</button></section>';
   };
 
   screens.week = function () {
@@ -694,6 +797,8 @@
   function go(screen) {
     S.screen = screen; S.ui.confirm = '';
     if (screen !== 'week') { S.ui.note = ''; S.ui.viewWeek = ''; }
+    if (screen !== 'checkout') S.ui.outDate = '';
+    if (screen !== 'today') { stopPause(); S.ui.editStep = false; }
     render();
   }
   function reveal(el, cb) {
@@ -813,15 +918,47 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000); toast('Image saved.');
       });
     },
-    nextLine: function () { S.ui.lineIdx = (S.ui.lineIdx || 0) + 1; render(); },
+    nextLine: function () {
+      var d = D(), list = linesFor(d), i = list.indexOf(lineFor(d));
+      d.line = list[(i + 1) % list.length]; render();
+    },
+    confirmStep: function () {
+      var d = D();
+      if (!has(d.step)) { toast('Write today\'s step first, or just record today.'); var el = document.getElementById('step-input'); if (el) el.focus(); return; }
+      d.step = d.step.trim(); d.ready = true; render();
+    },
+    backToCheckin: function () { stopPause(); D().ready = false; render(); },
+    startStep: function () {
+      var d = D(); stopPause();
+      if (!has(d.step)) { d.ready = false; return render(); }
+      d.startedAt = new Date().toISOString(); render();
+    },
+    unstart: function () { var d = D(); d.startedAt = ''; S.ui.editStep = false; render(); },
+    editStep: function () {
+      var d = D();
+      if (S.ui.editStep && !has(d.step)) return toast('The step cannot be empty.');
+      if (S.ui.editStep) d.step = d.step.trim();
+      S.ui.editStep = !S.ui.editStep; render();
+      if (S.ui.editStep) { var el = document.getElementById('step-input'); if (el) el.focus(); }
+    },
+    wrapUp: function (arg) {
+      S.ui.editStep = false;
+      if (arg && S.days[arg]) { stopPause(); S.screen = 'checkout'; S.ui.outDate = arg; S.ui.confirm = ''; return render(); }
+      go('checkout');
+    },
+    result: function (arg) { var d = outRec(); d.result = d.result === arg ? '' : arg; render(); },
+    pauseOpen: function () {
+      S.ui.pause = true; S.ui.pauseEnded = false; render();
+      var a = getAudio(); var p = a.play(); if (p && p.catch) p.catch(function () { updatePause(); });
+    },
+    pauseToggle: function () {
+      var a = getAudio(); S.ui.pauseEnded = false;
+      if (a.paused) { var p = a.play(); if (p && p.catch) p.catch(function () {}); } else a.pause();
+    },
+    pauseClose: function () { stopPause(); render(); },
     energy: function (arg) { var d = D(); d.energy = Number(arg); d.energySkipped = false; render(); },
     skipEnergy: function () { D().energySkipped = true; render(); },
     redoEnergy: function () { var d = D(); d.energy = 0; d.energySkipped = false; render(); },
-    didIt: function () {
-      var d = D();
-      if (!has(d.step)) return toast('Write today\'s step first, or check out without one.');
-      d.step = d.step.trim(); go('checkout');
-    },
     smaller: function () {
       var d = D(); d.shrunk = true; save();
       toast('Cut it to the first ten minutes. Rewrite the step so it says only that.');
@@ -836,9 +973,17 @@
       render(); toast('Moved to ' + nice(tm) + '.');
     },
     rest: function () { var d = D(); d.rest = true; d.out = true; go('today'); },
-    reopen: function () { var d = D(); d.out = false; d.rest = false; render(); },
+    /* A rest day goes back to check-in. A checked-out day opens its check-out again, filled in, and stays done. */
+    reopen: function () {
+      var d = D();
+      if (d.rest) { d.out = false; d.rest = false; d.ready = false; d.startedAt = ''; return render(); }
+      go('checkout');
+    },
     saveCheckout: function (arg, el) {
-      reveal(el, function () { var d = D(); d.out = true; d.rest = false; go('today'); });
+      var pastDate = S.ui.outDate && S.days[S.ui.outDate] ? S.ui.outDate : '';
+      var d = outRec();
+      if (d.result === 'changed') d.step = (d.step || '').trim();
+      reveal(el, function () { d.out = true; d.rest = false; go('today'); if (pastDate) toast('Saved ' + nice(pastDate) + '.'); });
     },
     showWeek: function (arg) { S.ui.viewWeek = arg === monday(today()) ? '' : arg; S.ui.note = ''; render(); },
     toggleRest: function (arg) { var p = planFor(arg); p.rest = !p.rest; render(); },
@@ -873,7 +1018,7 @@
 
   function setBind(b, v) {
     var p = b.split('.');
-    if (p[0] === 'day') D()[p[1]] = v;
+    if (p[0] === 'day') (S.screen === 'checkout' ? outRec() : D())[p[1]] = v;
     else if (p[0] === 'week') W(S.screen === 'prompt' ? monday(today()) : viewWeek())[p[1]] = v;
     else if (p[0] === 'plan') planFor(p[1]).step = v;
     else if (p[0] === 'project') S.project[p[1]] = v;
