@@ -26,7 +26,8 @@
     chev: '<path d="M6 9l6 6 6-6"/>',
     back: '<path d="M15 5l-7 7 7 7"/>',
     play: '<path d="M8 5.5v13l10.5-6.5z"/>',
-    pause: '<path d="M9 5.5v13M15 5.5v13"/>'
+    pause: '<path d="M9 5.5v13M15 5.5v13"/>',
+    lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>'
   };
   /* Grounding pause: a short guided audio, played only when the person taps it. Replace pause.m4a with
      Ran's recording (same name, or change this line). The current file is a text-to-speech placeholder. */
@@ -124,7 +125,7 @@
       review: { decision: '', reason: '' },
       feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false },
       usage: { prompts: 0, offers: 0 },
-      ui: { confirm: '', viewWeek: '', note: '', theme: 'light', promptKind: '', promptFrom: 'week', lineIdx: 0 }
+      ui: { confirm: '', viewWeek: '', note: '', theme: 'light', promptKind: '', promptFrom: 'week', lineIdx: 0, toured: false, tourIdx: 0, mapSeen: false }
     };
   }
 
@@ -152,8 +153,8 @@
         if (d && d.v === 2) {
           Object.keys(d).forEach(function (k) { base[k] = d[k]; });
           ['project', 'review', 'feedback', 'ui'].forEach(function (k) { base[k] = Object.assign({}, blank()[k], d[k] || {}); });
-          base.ui.confirm = ''; base.ui.pause = false; base.ui.editStep = false; base.ui.outDate = '';
-          if (base.screen === 'checkout') base.screen = 'today';
+          base.ui.confirm = ''; base.ui.pause = false; base.ui.editStep = false; base.ui.shrink = false; base.ui.custom = false; base.ui.outDate = '';
+          if (base.screen === 'checkout' || base.screen === 'tour') base.screen = 'today';
         }
       } else {
         var oldRaw = localStorage.getItem(OLD_KEY);
@@ -186,6 +187,8 @@
   function daysBetween(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
 
   var S = load();
+  /* Everyone sees the five-card tour once, new or not. It can be skipped and opened again from the footer. */
+  if (!S.ui.toured) { S.screen = 'tour'; S.ui.tourIdx = 0; }
 
   function W(key) {
     if (!S.weeks[key]) S.weeks[key] = { question: '', sign: '', who: '', plan: {} };
@@ -219,6 +222,61 @@
     var t = new Date(isoTime);
     return isNaN(t) ? '' : t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
+  /* Timer on the working screen: a countdown for work or for rest. The breathing shape slowly empties as
+     the time runs down, so the breathing itself is never boxed in. At zero Grove offers the next move. */
+  var CHIPS = { work: [5, 25, 45], rest: [5, 10, 15] };
+  function defaultMins(d, mode) {
+    if (mode === 'rest') return d.restMins || 5;
+    if (d.workMins) return d.workMins;
+    return d.energy && d.energy <= 2 ? 5 : (d.energy >= 4 ? 45 : 25);
+  }
+  function timerOf(d) {
+    if (!d.timer || !d.timer.start) d.timer = { mode: 'work', start: d.startedAt || new Date().toISOString(), mins: defaultMins(d, 'work') };
+    return d.timer;
+  }
+  function leftMs(t) { return new Date(t.start).getTime() + t.mins * 60000 - Date.now(); }
+  function stale(t) { return Date.now() - new Date(t.start).getTime() > 12 * 3600000; }
+  function msLeft(ms) {
+    var s0 = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s0 / 3600), m = Math.floor(s0 % 3600 / 60), x = s0 % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0');
+  }
+  function level(t) { return Math.max(0, Math.min(1, leftMs(t) / (t.mins * 60000))); }
+  function timerBlob(d) {
+    var t = timerOf(d);
+    return '<span id="t-blob" class="blob lv' + (d.energy || 3) + ' breathe-slow timer-blob' + (t.mode === 'rest' ? ' rest' : '') + '" style="--level:' + level(t).toFixed(3) + '" aria-hidden="true"></span>';
+  }
+  function timerBlock(d) {
+    var t = timerOf(d), done = leftMs(t) <= 0 || stale(t), rest = t.mode === 'rest';
+    var modes = '<div class="mode-seg" role="group" aria-label="Timer mode">' +
+      '<button class="' + (rest ? '' : 'on') + '" data-act="setMode" data-arg="work" aria-pressed="' + !rest + '">Work</button>' +
+      '<button class="' + (rest ? 'on' : '') + '" data-act="setMode" data-arg="rest" aria-pressed="' + rest + '">Rest</button></div>';
+    if (done) {
+      return modes + '<p class="t-done serif">' + (rest ? 'Rest is over.' : 'Time is up.') + '</p>' +
+        '<div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">' + (rest
+          ? '<button class="btn ghost small-btn" data-act="startWork">Back to work</button><button class="btn ghost small-btn" data-act="startRest">5 more minutes</button>'
+          : '<button class="btn ghost small-btn" data-act="startRest">Rest ' + defaultMins(d, 'rest') + ' min</button><button class="btn ghost small-btn" data-act="moreTime">10 more minutes</button>') + '</div>';
+    }
+    var chips = CHIPS[t.mode].map(function (x) {
+      return '<button class="' + (t.mins === x ? 'on' : '') + '" data-act="setBox" data-arg="' + x + '" aria-pressed="' + (t.mins === x) + '">' + x + ' min</button>';
+    }).join('');
+    var custom = CHIPS[t.mode].indexOf(t.mins) < 0;
+    chips += S.ui.custom
+      ? '<span class="custom-min"><input id="custom-min" type="number" inputmode="numeric" min="1" max="180" value="' + t.mins + '" aria-label="Minutes"><button data-act="setCustom">Set</button></span>'
+      : '<button class="' + (custom ? 'on' : '') + '" data-act="customToggle">' + (custom ? t.mins + ' min' : 'Custom') + '</button>';
+    return modes + '<span id="t-left" class="t-left" role="timer" aria-live="off">' + msLeft(leftMs(t)) + '</span>' +
+      '<span class="small muted">' + (rest ? 'resting' : 'left') + ' · ' + t.mins + ' min</span>' +
+      '<div class="seg chips box-chips" aria-label="Minutes">' + chips + '</div>';
+  }
+  function restartTimer(d, mode, mins) {
+    d.timer = { mode: mode, start: new Date().toISOString(), mins: mins };
+    if (mode === 'work') d.workMins = mins; else d.restMins = mins;
+    S.ui.custom = false; S.ui.timerDone = false; render();
+  }
+  function minutesWorked(d) {
+    if (!d.startedAt || !d.wrappedAt) return 0;
+    var m = Math.round((new Date(d.wrappedAt) - new Date(d.startedAt)) / 60000);
+    return m > 0 && m < 720 ? m : 0;
+  }
   function viewWeek() { return S.ui.viewWeek || monday(today()); }
   function weekDays(wk) { var out = []; for (var i = 0; i < 7; i++) out.push(addDays(wk, i)); return out; }
   function notesIn(wk) {
@@ -251,7 +309,7 @@
   }
   function sizeLine(energy) {
     if (!energy) return '';
-    if (energy <= 2) return 'Low energy: pick the least effort that can still teach you something. Ten minutes is enough.';
+    if (energy <= 2) return 'Low energy: pick the least effort that can still teach you something. Five minutes is enough.';
     if (energy === 3) return 'Steady energy: about half an hour on the step that teaches you most.';
     return 'Good energy: a day for the step that teaches the most, like watching someone use it.';
   }
@@ -321,7 +379,7 @@
     var u = S.usage || {};
     return ['This week: checked out ' + out + ' of 7 days, energy check on ' + energy + ', ' + steps + ' day' + (steps === 1 ? '' : 's') + ' with a step, seen by someone on ' + seen + '.',
       'Weekly question written: ' + (has(W(wk).question) ? 'yes' : 'no') + '. Growth Rings saved: ' + S.rings.length + '.',
-      'Growth Map answers: ' + mapDone + ' of ' + mapKeys.length + '. Prompts copied: ' + (u.prompts || 0) + '. Offer cards shared: ' + (u.offers || 0) + '.'].join('\n');
+      'Growth Map answers: ' + mapDone + ' of ' + mapKeys.length + '. Prompts copied: ' + (u.prompts || 0) + '. Offer cards shared: ' + (u.offers || 0) + '.', 'Grove version: ' + APP_VERSION + '.'].join('\n');
   }
   function sharedNotes() {
     if (!S.feedback.include) return '';
@@ -354,7 +412,8 @@
   function tabs(active) {
     var t = [['today', 'Today'], ['week', 'This Week'], ['map', 'Growth Map']];
     return '<nav class="tabs" aria-label="Main"><span class="brand rail-brand">' + LOGO + 'Grove</span>' + t.map(function (x) {
-      return '<button data-act="go" data-arg="' + x[0] + '"' + (active === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>';
+      var dot = x[0] === 'map' && !S.ui.mapSeen ? '<span class="newdot" aria-label="not opened yet"></span>' : '';
+      return '<button data-act="go" data-arg="' + x[0] + '"' + (active === x[0] ? ' class="on"' : '') + '>' + x[1] + dot + '</button>';
     }).join('') + '</nav>';
   }
   function field(label, bind, value, placeholder, rows) {
@@ -454,7 +513,28 @@
       '<div class="row between"><span class="small muted">' + n + ' of ' + P.fields.length + ' answers ready</span>' +
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
-  var FOOT = '<p class="foot">Grove by WoMen AI Lab</p>';
+  /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
+  var APP_VERSION = 'v0.6';
+  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button></p>';
+
+  /* The tour: the five things worth knowing first. */
+  var TOUR = [
+    { art: function () { return '<span class="blob lv3 tour-blob" aria-hidden="true"></span>'; },
+      title: 'One small step a day',
+      body: 'Tell Grove how much energy you have, and size one step to fit. On a low day, ten minutes counts.' },
+    { art: function () { return weekRing({ shown: 4, evidence: 2, person: 1 }, 132); },
+      title: 'Three rings tell you if the idea got out this week',
+      body: 'One for the days you showed up (rest days count), one for notes that count as evidence, one for someone else seeing the work. That last one matters most.' },
+    { art: function () { return '<span class="logo-big tour-logo">' + LOGO + '</span>'; },
+      title: 'Decide on Sunday',
+      body: 'Look back at what happened and choose: continue, adjust or pause. Each review is kept as a Growth Ring.' },
+    { art: function () { return '<span class="tour-tiles">' + MAP.map(function (m) { return '<span class="tile t-' + m.key + '">' + svg(m.key, 26) + '</span>'; }).join('') + '</span>'; },
+      title: 'The Growth Map, when you want more',
+      body: 'Five steps from idea to offer: Seed, Root, Sprout, Bloom, Pollinate. What you write there fills in your AI prompts and your offer card. It is optional.' },
+    { art: function () { return '<span class="donemark tour-lock">' + svg('lock', 40) + '</span>'; },
+      title: 'Your notes stay with you',
+      body: 'What you write stays in this browser. Nothing leaves it unless you tap Send feedback, and you see exactly what goes first.' }
+  ];
 
   /* ---------- screens ---------- */
 
@@ -491,27 +571,17 @@
         ? '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' +
           '<textarea id="step-input" class="plain" rows="3" data-bind="day.step">' + esc(d.step) + '</textarea></div>' +
           '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="editStep">Done</button></div>'
-        : '<div class="stack" style="gap:8px"><span class="label">Working on</span><p class="serif step-now">' + esc(d.step) + '</p>' +
-          '<span class="small muted">Started at ' + esc(clock(d.startedAt)) + '</span></div>';
-      body = '<div class="stack working">' +
-        '<span class="pulse" aria-hidden="true"></span>' + stepBlock +
-        '<p class="serif muted line-quiet">' + esc(lineFor(d)) + '</p></div>' +
+        : '<div class="stack working-step"><span class="label">' + (d.timer && d.timer.mode === 'rest' ? 'Your step' : 'Working on') + '</span><p class="serif step-now">' + esc(d.step) + '</p></div>';
+      var w0 = W(monday(today()));
+      body = (has(w0.question) ? '<p class="small muted center-text">This week: ' + esc(w0.question) + '</p>' : '') +
+        '<div class="working-orb">' + timerBlob(d) + '</div>' +
+        '<div id="work-time" class="working-time">' + timerBlock(d) + '</div>' +
+        stepBlock +
+        field('Notice something? Jot it down', 'day.happened', d.happened, 'It will be waiting in your check-out.', 2) +
         '<div style="flex:1"></div>' +
         '<button class="btn" data-act="wrapUp">Wrap up for today</button>' +
-        (S.ui.editStep ? '' : '<button class="btn ghost" data-act="editStep">Change the step</button>') +
-        '<button class="link" data-act="unstart">I have not started yet</button>';
-      return '<section class="screen">' + head + yNote + body + FOOT + '</section>' + tabs('today');
-    }
-
-    if (!S.paused && !d.out && d.ready) {
-      /* Ready to begin: a quiet page before starting. */
-      body = '<div class="stack"><span class="label">Ready to begin</span>' +
-        '<p class="serif step-now">' + esc(d.step) + '</p>' +
-        (has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '') + '</div>' +
-        lineCard() + pausePanel() +
-        '<div style="flex:1"></div>' +
-        '<button class="btn" data-act="startStep">Start my step</button>' +
-        '<button class="link" data-act="backToCheckin">Change the step</button>';
+        '<div class="row" style="justify-content:center;gap:18px">' + (S.ui.editStep ? '' : '<button class="link" data-act="editStep">Change the step</button>') +
+        '<button class="link" data-act="unstart">Not started yet</button></div>';
       return '<section class="screen">' + head + yNote + body + FOOT + '</section>' + tabs('today');
     }
 
@@ -542,16 +612,42 @@
       body = energy + restNote +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
-        (size ? '<span class="small muted">' + esc(size) + '</span>' : '') + '</div></div>' +
-        '<button class="btn" data-act="confirmStep">This is my step</button>' +
+        (size ? '<span class="small muted">' + esc(size) + '</span>' : '') +
+        (d.energy && d.energy <= 2 && has(d.step) && !d.shrunk && !S.ui.shrink ? '<button class="link" style="align-self:flex-start;padding:0" data-act="smaller">Show smaller versions</button>' : '') + '</div></div>' +
         '<div class="row wrap">' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="smaller">Make it smaller</button>' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="moveStep">Move to tomorrow</button>' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
+        shrinkPanel(d) +
+        (d.energy || d.energySkipped ? lineCard() + pausePanel() : '') +
+        '<button class="btn" data-act="startStep">Start my step</button>' +
         '<button class="link" data-act="wrapUp">Just record today</button>';
     }
     return '<section class="screen">' + head + intro + due + yNote + weekLine + body + FOOT + '</section>' + tabs('today');
   };
+
+  /* Make it smaller: three ready-made smaller versions of the step, one tap to use. No AI involved. */
+  var SHRINK = [
+    ['Just the first 10 minutes of: ', 'Do only the start.'],
+    ['A rough version only, not finished: ', 'Rough is enough to learn from.'],
+    ['Tell one person I plan to: ', 'Saying it out loud counts.']
+  ];
+  function baseStep(step) {
+    var t = String(step || '').trim().replace(/[.\s]+$/, '');
+    SHRINK.forEach(function (x) { if (t.indexOf(x[0]) === 0) t = t.slice(x[0].length); });
+    return t;
+  }
+  function shrinkPanel(d) {
+    if (!S.ui.shrink || !has(d.step)) return '';
+    var b = baseStep(d.step);
+    return '<div class="shrink stack" role="region" aria-label="Smaller versions">' +
+      '<div class="pause-head"><span class="label">Pick a smaller version</span><button class="link" data-act="smaller">Close</button></div>' +
+      SHRINK.map(function (x, i) {
+        return '<button class="shrink-opt" data-act="useShrink" data-arg="' + i + '"><span>' + esc(x[0] + b) + '</span><span class="small muted">' + x[1] + '</span></button>';
+      }).join('') +
+      '<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:6px"><button class="link" data-act="shrinkOwn">Write my own</button>' +
+      '<button class="link" data-act="shrinkAI">Ask your AI for more</button></div></div>';
+  }
 
   function resultLabel(key) { var r = RESULTS.filter(function (x) { return x[0] === key; })[0]; return r ? r[1] : ''; }
 
@@ -592,6 +688,56 @@
       '<p class="small muted">' + (S.ui.pauseEnded ? 'That is the pause. Start whenever you like.' : 'Stop whenever you want. Your step is waiting below.') + '</p></div>';
   }
 
+  screens.tour = function () {
+    var i = Math.min(Math.max(S.ui.tourIdx || 0, 0), TOUR.length - 1), t = TOUR[i], last = i === TOUR.length - 1;
+    var dots = TOUR.map(function (x, k) { return '<span class="tdot' + (k === i ? ' on' : '') + '"></span>'; }).join('');
+    return '<section class="screen tour" aria-roledescription="tour">' +
+      '<header class="top">' + (i ? '<button class="icon-btn" aria-label="Back" data-act="tourStep" data-arg="-1">' + svg('back', 24) + '</button>' : '<span class="brand">' + LOGO + 'Grove</span>') +
+      (last ? '<span></span>' : '<button class="link" data-act="tourDone" data-arg="today">Skip</button>') + '</header>' +
+      '<div class="tour-art">' + t.art() + '</div>' +
+      '<div class="stack tour-text"><span class="label">' + (i + 1) + ' of ' + TOUR.length + '</span><h1>' + t.title + '</h1><p class="muted">' + t.body + '</p></div>' +
+      '<div style="flex:1"></div><div class="tdots" aria-hidden="true">' + dots + '</div>' +
+      (last
+        ? '<button class="btn" data-act="tourDone" data-arg="today">Start today</button><button class="btn ghost" data-act="tourDone" data-arg="map">Open the Growth Map</button>'
+        : '<button class="btn" data-act="tourStep" data-arg="1">Next</button>' +
+          (i === 3 ? '<button class="link" data-act="tourDone" data-arg="map">Open the Growth Map now</button>' : '')) +
+      '</section>';
+  };
+
+  /* Why it works: the ideas behind Grove, in our own words, with where each comes from. Reached quietly from
+     the bottom of the Growth Map. Sources were checked before they were added; add only ones you can check. */
+  var WHY = [
+    { title: 'Small enough for your worst day',
+      body: 'A step you can take on a low day beats a plan you keep putting off. That is why Grove asks about your energy first and sizes the step to it.',
+      source: 'Martha Beck\'s coaching work, which Ran trained and is certified in. She calls these "turtle steps": steps so small you could take them on your worst day. Finding Your Own North Star, 2001.' },
+    { title: 'Decide when, not only what',
+      body: 'Intentions turn into action more often when you have already decided when you will act. The weekly plan gives each day one step, and Start my step turns it into now.',
+      source: 'Peter Gollwitzer, "Implementation intentions: Strong effects of simple plans", American Psychologist, 1999.' },
+    { title: 'Learn from real people, not from guessing',
+      body: 'You find out whether an idea works by putting it in front of the people it is for, early and often, and asking what they actually did rather than what they might do. That is the third ring.',
+      source: 'Steve Blank, The Four Steps to the Epiphany, 2005. Eric Ries, The Lean Startup, 2011. Rob Fitzpatrick, The Mom Test, 2013.' },
+    { title: 'Seeing progress keeps you going',
+      body: 'Small, visible progress on work that matters to you is one of the strongest reasons people keep going. The rings and Growth Rings are there to make it visible.',
+      source: 'Teresa Amabile and Steven Kramer, The Progress Principle, 2011.' },
+    { title: 'Look back, then decide',
+      body: 'People learn from experience when they stop to think about it and choose what to try next. The Sunday review ends in one choice: continue, adjust or pause.',
+      source: 'David Kolb, Experiential Learning, 1984.' },
+    { title: 'A set time, then a choice',
+      body: 'Giving a step a fixed amount of time keeps it from quietly growing into a project, and planned rests keep you going. Grove uses a gentle version: the shape slowly empties, and at the end you choose to rest, carry on or wrap up.',
+      source: 'Francesco Cirillo, The Pomodoro Technique. Timeboxing from software teams.' }
+  ];
+  screens.why = function () {
+    return '<section class="screen pad-bottom">' +
+      '<header class="top">' + backBtn('map') + '<span class="small muted">Why it works</span></header>' +
+      '<h1>Why it works</h1>' +
+      '<p class="muted">Grove borrows a few ideas that have been tested in research or in practice. Here is each one, what Grove does with it, and where it comes from.</p>' +
+      WHY.map(function (w) {
+        return '<div class="why-item stack"><h2 class="serif">' + w.title + '</h2><p>' + w.body + '</p><p class="small muted">' + w.source + '</p></div>';
+      }).join('') +
+      '<div class="notice stack"><span class="label">What we do not claim</span><p class="small">The energy check is our own idea, and so is how the pieces fit together. No study shows that Grove itself works. The pilot is how we find out. Grove is a tool, not coaching or therapy.</p></div>' +
+      FOOT + '</section>';
+  };
+
   screens.checkout = function () {
     var d = outRec();
     var date = S.ui.outDate && S.days[S.ui.outDate] ? S.ui.outDate : today();
@@ -601,7 +747,8 @@
       summary = '<div class="card">' +
         (has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<div><span class="label">Planned</span><span class="small">' + esc(d.planned) + '</span></div>' : '') +
         '<div><span class="label">' + (has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? 'Chose' : 'Today\'s step') + '</span><span class="small' + (has(d.step) ? '' : ' empty') + '">' + (has(d.step) ? esc(d.step) + (d.shrunk ? ' (made smaller)' : '') : 'No step today') + '</span></div>' +
-        (d.startedAt ? '<div><span class="label">Started</span><span class="small">' + esc(clock(d.startedAt)) + (date !== today() ? ', ' + esc(nice(date)) : '') + '</span></div>' : '') + '</div>';
+        (d.startedAt ? '<div><span class="label">Started</span><span class="small">' + esc(clock(d.startedAt)) + (date !== today() ? ', ' + esc(nice(date)) : '') +
+          (minutesWorked(d) ? ' · about ' + minutesWorked(d) + ' min' : '') + '</span></div>' : '') + '</div>';
     }
     var results = '<div class="stack" style="gap:10px"><span class="label">How did it go?</span><div class="seg chips">' + RESULTS.map(function (r) {
       return '<button class="' + (d.result === r[0] ? 'on' : '') + '" data-act="result" data-arg="' + r[0] + '" aria-pressed="' + (d.result === r[0]) + '">' + r[1] + '</button>';
@@ -789,6 +936,7 @@
           '<span class="label">Ask your AI for help</span>' + m.prompts.map(function (k) { return promptCard(k, 'map'); }).join('') +
           '</div></details>';
       }).join('') +
+      '<button class="link why-link" data-act="go" data-arg="why">Why it works</button>' +
       FOOT + '</section>' + tabs('map');
   };
 
@@ -798,7 +946,8 @@
     S.screen = screen; S.ui.confirm = '';
     if (screen !== 'week') { S.ui.note = ''; S.ui.viewWeek = ''; }
     if (screen !== 'checkout') S.ui.outDate = '';
-    if (screen !== 'today') { stopPause(); S.ui.editStep = false; }
+    if (screen === 'map') S.ui.mapSeen = true;
+    if (screen !== 'today') { stopPause(); S.ui.editStep = false; S.ui.shrink = false; }
     render();
   }
   function reveal(el, cb) {
@@ -922,18 +1071,28 @@
       var d = D(), list = linesFor(d), i = list.indexOf(lineFor(d));
       d.line = list[(i + 1) % list.length]; render();
     },
-    confirmStep: function () {
+    tour: function () { S.ui.tourIdx = 0; go('tour'); },
+    tourStep: function (arg) { S.ui.tourIdx = Math.min(Math.max((S.ui.tourIdx || 0) + Number(arg), 0), TOUR.length - 1); render(); },
+    tourDone: function (arg) { S.ui.toured = true; S.ui.tourIdx = 0; go(arg === 'map' ? 'map' : 'today'); },
+    startStep: function () {
       var d = D();
       if (!has(d.step)) { toast('Write today\'s step first, or just record today.'); var el = document.getElementById('step-input'); if (el) el.focus(); return; }
-      d.step = d.step.trim(); d.ready = true; render();
+      stopPause(); d.step = d.step.trim(); d.ready = true; S.ui.shrink = false;
+      d.startedAt = new Date().toISOString(); d.timer = null;
+      restartTimer(d, 'work', defaultMins(d, 'work'));
     },
-    backToCheckin: function () { stopPause(); D().ready = false; render(); },
-    startStep: function () {
-      var d = D(); stopPause();
-      if (!has(d.step)) { d.ready = false; return render(); }
-      d.startedAt = new Date().toISOString(); render();
+    setBox: function (arg) { var d = D(); restartTimer(d, timerOf(d).mode, Number(arg)); },
+    setMode: function (arg) { var d = D(); var m = arg === 'rest' ? 'rest' : 'work'; if (timerOf(d).mode === m && leftMs(d.timer) > 0) return; restartTimer(d, m, defaultMins(d, m)); },
+    startRest: function () { var d = D(); restartTimer(d, 'rest', timerOf(d).mode === 'rest' ? 5 : defaultMins(d, 'rest')); },
+    startWork: function () { var d = D(); restartTimer(d, 'work', defaultMins(d, 'work')); },
+    moreTime: function () { var d = D(); d.timer = { mode: 'work', start: new Date().toISOString(), mins: 10 }; S.ui.timerDone = false; render(); },
+    customToggle: function () { S.ui.custom = true; render(); var el = document.getElementById('custom-min'); if (el) { el.focus(); el.select(); } },
+    setCustom: function () {
+      var el = document.getElementById('custom-min'), n = Math.round(Number(el && el.value));
+      if (!(n >= 1 && n <= 180)) return toast('Pick between 1 and 180 minutes.');
+      var d = D(); restartTimer(d, timerOf(d).mode, n);
     },
-    unstart: function () { var d = D(); d.startedAt = ''; S.ui.editStep = false; render(); },
+    unstart: function () { var d = D(); d.startedAt = ''; d.wrappedAt = ''; d.timer = null; S.ui.editStep = false; render(); },
     editStep: function () {
       var d = D();
       if (S.ui.editStep && !has(d.step)) return toast('The step cannot be empty.');
@@ -943,6 +1102,7 @@
     },
     wrapUp: function (arg) {
       S.ui.editStep = false;
+      if (!arg) { var t = D(); if (t.startedAt && !t.out) t.wrappedAt = new Date().toISOString(); }
       if (arg && S.days[arg]) { stopPause(); S.screen = 'checkout'; S.ui.outDate = arg; S.ui.confirm = ''; return render(); }
       go('checkout');
     },
@@ -960,9 +1120,22 @@
     skipEnergy: function () { D().energySkipped = true; render(); },
     redoEnergy: function () { var d = D(); d.energy = 0; d.energySkipped = false; render(); },
     smaller: function () {
-      var d = D(); d.shrunk = true; save();
-      toast('Cut it to the first ten minutes. Rewrite the step so it says only that.');
-      var el = document.getElementById('step-input'); if (el) el.focus();
+      var d = D();
+      if (!has(d.step)) { toast('Write the step first, then make it smaller.'); var el0 = document.getElementById('step-input'); if (el0) el0.focus(); return; }
+      S.ui.shrink = !S.ui.shrink; render();
+      if (S.ui.shrink) { var p = document.querySelector('.shrink'); if (p) p.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    },
+    useShrink: function (arg) {
+      var d = D(), x = SHRINK[Number(arg)]; if (!x) return;
+      d.step = x[0] + baseStep(d.step); d.shrunk = true; S.ui.shrink = false; render(); toast('Smaller. You can still edit it.');
+    },
+    shrinkOwn: function () {
+      var d = D(); d.shrunk = true; S.ui.shrink = false; render();
+      var el = document.getElementById('step-input'); if (el) { el.focus(); el.select(); }
+    },
+    shrinkAI: function () {
+      S.usage = S.usage || {}; S.usage.prompts = (S.usage.prompts || 0) + 1; save();
+      copyText(buildPrompt('smaller'), 'Copied. Paste it into your own AI, then bring back the version you like.');
     },
     moveStep: function () {
       var d = D();
@@ -1066,6 +1239,15 @@
     }
   });
 
+  /* Swipe left or right through the tour on a phone. */
+  var touchX = null;
+  app.addEventListener('touchstart', function (e) { touchX = S.screen === 'tour' ? e.touches[0].clientX : null; }, { passive: true });
+  app.addEventListener('touchend', function (e) {
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX; touchX = null;
+    if (Math.abs(dx) > 50) acts.tourStep(dx < 0 ? '1' : '-1');
+  });
+
   function render() {
     applyTheme();
     var fn = screens[S.screen] || screens.today;
@@ -1075,6 +1257,24 @@
   }
 
   render();
+  /* Every second while working: update the countdown, how full the shape is, and the tab title.
+     At zero, redraw the timer once to offer the next move, and buzz gently where phones allow it. */
+  setInterval(function () {
+    var d = S.days[today()];
+    var working = S.screen === 'today' && d && d.startedAt && !d.out && !S.paused;
+    if (!working) { if (document.title !== 'Grove') document.title = 'Grove'; return; }
+    var t = timerOf(d), left = leftMs(t);
+    document.title = (left > 0 ? msLeft(left) + (t.mode === 'rest' ? ' rest' : '') : (t.mode === 'rest' ? 'Rest is over' : 'Time is up')) + ' · Grove';
+    var el = document.getElementById('t-left'); if (el) el.textContent = msLeft(left);
+    var b = document.getElementById('t-blob'); if (b) b.style.setProperty('--level', level(t).toFixed(3));
+    var typing = document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName);
+    if (left <= 0 && !S.ui.timerDone && !typing) {
+      S.ui.timerDone = true;
+      var box = document.getElementById('work-time');
+      if (box) box.innerHTML = timerBlock(d); else render();
+      if (navigator.vibrate) try { navigator.vibrate([120, 80, 120]); } catch (e) { /* ignore */ }
+    }
+  }, 1000);
 
   /* Offline support only on a real https site, so local previews never serve stale files. */
   if ('serviceWorker' in navigator && location.protocol === 'https:') {

@@ -232,3 +232,55 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .pause-track { display: block; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
 #pause-bar { display: block; height: 100%; width: 0; background: var(--primary); transition: width 0.25s linear; }
 @media (prefers-reduced-motion: reduce) { .pulse, .blob.pause-blob.breathing { animation: none; } }
+
+/* ---------- tour ---------- */
+.screen.tour { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.tour .tour-art { min-height: 230px; display: flex; align-items: center; justify-content: center; }
+.tour-blob { --s: 170px; }
+.tour-logo .logo { width: 150px; height: 150px; }
+.tour-tiles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 320px; }
+.tour-lock { width: 120px; height: 120px; }
+.tour-text { gap: 10px; }
+.tour-text p { font-size: 18px; line-height: 1.5; }
+.tdots { display: flex; gap: 8px; justify-content: center; }
+.tdot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); transition: width 0.25s ease; }
+.tdot.on { width: 22px; border-radius: 4px; background: var(--primary); }
+.foot-link { font-size: 14px; min-height: 32px; color: var(--faint); }
+.newdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); margin-left: 6px; vertical-align: 3px; }
+
+/* ---------- working, calmer ---------- */
+.working-orb { position: relative; height: 230px; display: flex; align-items: center; justify-content: center; }
+.working-orb .blob { --s: 196px; }
+/* The shape empties like water as time runs down. A slowly turning rounded square makes the soft wave. */
+.blob.timer-blob { position: relative; overflow: hidden; isolation: isolate; background: var(--hi); }
+.blob.timer-blob::after { content: ''; position: absolute; z-index: -1; left: -60%; width: 220%; height: 220%;
+  top: calc((1 - var(--level, 1)) * 104% - 4%); background: radial-gradient(circle at 50% 8%, var(--c), var(--c) 60%); border-radius: 43%;
+  animation: water 16s linear infinite; transition: top 1s linear; }
+.blob.timer-blob.rest { --c: #9CC4E4; --hi: #E2EEF8; }
+@keyframes water { to { transform: rotate(360deg); } }
+.mode-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--sunk); margin-bottom: 4px; }
+.mode-seg button { min-height: 32px; padding: 0 16px; border: none; border-radius: 999px; background: transparent; color: var(--muted); font-size: 14px; }
+.mode-seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.t-left { font-family: var(--sans); font-weight: 300; font-size: 56px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.t-done { font-size: 26px; margin: 6px 0 4px; }
+.custom-min { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--primary); border-radius: 999px; padding: 0 4px 0 10px; }
+.custom-min input { width: 48px; border: none; background: transparent; color: var(--text); font-size: 15px; text-align: center; }
+.custom-min button { min-height: 30px !important; padding: 0 10px !important; border-radius: 999px; border: none !important; background: var(--primary) !important; color: var(--on-primary) !important; }
+.center-text { text-align: center; }
+.box-chips { justify-content: center; margin-top: 6px; flex-wrap: nowrap; gap: 6px; }
+.box-chips button { min-height: 36px; padding: 0 12px; font-size: 14px; white-space: nowrap; flex: 0 0 auto; }
+.blob.breathe-slow { animation: breathe-slow 10s ease-in-out infinite; }
+@keyframes breathe-slow { 0%, 100% { transform: scale(0.82); } 45% { transform: scale(1.08); } 55% { transform: scale(1.08); } }
+.working-time { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.working-time .serif { font-size: 40px; }
+.working-step { gap: 6px; text-align: center; align-items: center; }
+.working-step .step-now { font-size: 24px; }
+@media (prefers-reduced-motion: reduce) { .blob.breathe-slow, .blob.timer-blob::after { animation: none; } }
+.why-link { align-self: center; font-size: 14px; color: var(--faint); margin-top: 8px; }
+.why-item { gap: 8px; padding: 18px 0; border-top: 1px solid var(--line); }
+.why-item h2 { font-size: 22px; margin: 0; }
+
+/* ---------- make it smaller ---------- */
+.shrink { gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 14px 16px 10px; }
+.shrink-opt { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--line-strong); background: transparent; color: var(--text); font-size: 16px; line-height: 1.35; }
+.shrink-opt:active { transform: scale(0.98); }
