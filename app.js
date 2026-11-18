@@ -243,7 +243,8 @@
   function level(t) { return Math.max(0, Math.min(1, leftMs(t) / (t.mins * 60000))); }
   function timerBlob(d) {
     var t = timerOf(d);
-    return '<span id="t-blob" class="blob lv' + (d.energy || 3) + ' breathe-slow timer-blob' + (t.mode === 'rest' ? ' rest' : '') + '" style="--level:' + level(t).toFixed(3) + '" aria-hidden="true"></span>';
+    return '<span id="t-blob" class="blob lv' + (d.energy || 3) + ' breathe-slow timer-blob' + (t.mode === 'rest' ? ' rest' : '') + '" aria-hidden="true">' +
+      '<span id="t-water" class="water" style="--level:' + level(t).toFixed(3) + '"></span></span>';
   }
   function timerBlock(d) {
     var t = timerOf(d), done = leftMs(t) <= 0 || stale(t), rest = t.mode === 'rest';
@@ -514,7 +515,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.6';
+  var APP_VERSION = 'v0.6.1';
   var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button></p>';
 
   /* The tour: the five things worth knowing first. */
@@ -1266,7 +1267,7 @@
     var t = timerOf(d), left = leftMs(t);
     document.title = (left > 0 ? msLeft(left) + (t.mode === 'rest' ? ' rest' : '') : (t.mode === 'rest' ? 'Rest is over' : 'Time is up')) + ' · Grove';
     var el = document.getElementById('t-left'); if (el) el.textContent = msLeft(left);
-    var b = document.getElementById('t-blob'); if (b) b.style.setProperty('--level', level(t).toFixed(3));
+    var wv = document.getElementById('t-water'); if (wv) wv.style.setProperty('--level', level(t).toFixed(3));
     var typing = document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName);
     if (left <= 0 && !S.ui.timerDone && !typing) {
       S.ui.timerDone = true;

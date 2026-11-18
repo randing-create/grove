@@ -227,8 +227,8 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .pause-play { width: 56px; height: 56px; flex: none; border-radius: 50%; border: none; background: var(--primary); color: var(--on-primary); display: inline-flex; align-items: center; justify-content: center; }
 .pause-play svg { fill: currentColor; }
 .blob.pause-blob { --s: 46px; flex: none; animation: none; }
-.blob.pause-blob.breathing { animation: breathe 8s ease-in-out infinite; }
-@keyframes breathe { 0%, 100% { transform: scale(0.8); } 50% { transform: scale(1.15); } }
+.blob.pause-blob.breathing { animation: breathe-pause 8s ease-in-out infinite; }
+@keyframes breathe-pause { 0%, 100% { transform: scale(0.8); } 50% { transform: scale(1.15); } }
 .pause-track { display: block; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
 #pause-bar { display: block; height: 100%; width: 0; background: var(--primary); transition: width 0.25s linear; }
 @media (prefers-reduced-motion: reduce) { .pulse, .blob.pause-blob.breathing { animation: none; } }
@@ -252,9 +252,9 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .working-orb { position: relative; height: 230px; display: flex; align-items: center; justify-content: center; }
 .working-orb .blob { --s: 196px; }
 /* The shape empties like water as time runs down. A slowly turning rounded square makes the soft wave. */
-.blob.timer-blob { position: relative; overflow: hidden; isolation: isolate; background: var(--hi); }
-.blob.timer-blob::after { content: ''; position: absolute; z-index: -1; left: -60%; width: 220%; height: 220%;
-  top: calc((1 - var(--level, 1)) * 104% - 4%); background: radial-gradient(circle at 50% 8%, var(--c), var(--c) 60%); border-radius: 43%;
+.blob.timer-blob { position: relative; overflow: hidden; background: var(--hi); -webkit-mask-image: -webkit-radial-gradient(white, black); }
+.blob.timer-blob .water { position: absolute; left: -60%; width: 220%; height: 220%;
+  top: calc((1 - var(--level, 1)) * 104% - 4%); background: var(--c); border-radius: 43%;
   animation: water 16s linear infinite; transition: top 1s linear; }
 .blob.timer-blob.rest { --c: #9CC4E4; --hi: #E2EEF8; }
 @keyframes water { to { transform: rotate(360deg); } }
@@ -275,7 +275,13 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .working-time .serif { font-size: 40px; }
 .working-step { gap: 6px; text-align: center; align-items: center; }
 .working-step .step-now { font-size: 24px; }
-@media (prefers-reduced-motion: reduce) { .blob.breathe-slow, .blob.timer-blob::after { animation: none; } }
+/* With Reduce Motion on (also common with Low Power Mode), the shapes still breathe, by fading instead of growing. */
+@keyframes breathe-fade { 0%, 100% { opacity: 0.62; } 45%, 55% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .blob.breathe-slow, .blob.pause-blob.breathing { animation: breathe-fade 10s ease-in-out infinite; }
+  .blob.timer-blob .water { animation: none; }
+  #blob { animation: breathe-fade 6s ease-in-out infinite; }
+}
 .why-link { align-self: center; font-size: 14px; color: var(--faint); margin-top: 8px; }
 .why-item { gap: 8px; padding: 18px 0; border-top: 1px solid var(--line); }
 .why-item h2 { font-size: 22px; margin: 0; }
