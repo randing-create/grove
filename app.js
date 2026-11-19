@@ -222,20 +222,31 @@
     var t = new Date(isoTime);
     return isNaN(t) ? '' : t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
-  /* Timer on the working screen: a countdown for work or for rest. The breathing shape slowly empties as
-     the time runs down, so the breathing itself is never boxed in. At zero Grove offers the next move. */
+  /* Working-page timer. The spec is in docs/PRODUCT.md, "The working page"; change that first.
+     It never starts by itself: idle -> running (tap Start) -> paused (Pause) or done (reaches zero).
+     Reset goes back to idle. The breathing shape keeps breathing and empties like water as time runs. */
   var CHIPS = { work: [5, 25, 45], rest: [5, 10, 15] };
+  var REST_IDEAS = [
+    ['Walk outside', 'A few minutes outdoors, without your phone if you can.'],
+    ['NSDR', 'Non-sleep deep rest: lie down, close your eyes, and slowly move your attention from head to toe.'],
+    ['Stretch', 'Neck, shoulders and back, slowly.'],
+    ['Drink water', 'A glass of water, away from your desk.'],
+    ['Look far away', 'Out of a window, at something in the distance.']
+  ];
   function defaultMins(d, mode) {
     if (mode === 'rest') return d.restMins || 5;
     if (d.workMins) return d.workMins;
     return d.energy && d.energy <= 2 ? 5 : (d.energy >= 4 ? 45 : 25);
   }
   function timerOf(d) {
-    if (!d.timer || !d.timer.start) d.timer = { mode: 'work', start: d.startedAt || new Date().toISOString(), mins: defaultMins(d, 'work') };
-    return d.timer;
+    var t = d.timer;
+    if (!t || !t.mins) { var m = defaultMins(d, 'work'); t = d.timer = { mode: 'work', mins: m, end: '', left: m * 60000 }; }
+    if (t.start && t.end === undefined) { t.end = new Date(new Date(t.start).getTime() + t.mins * 60000).toISOString(); delete t.start; } /* v0.6.x records */
+    return t;
   }
-  function leftMs(t) { return new Date(t.start).getTime() + t.mins * 60000 - Date.now(); }
-  function stale(t) { return Date.now() - new Date(t.start).getTime() > 12 * 3600000; }
+  function running(t) { return !!t.end; }
+  function leftMs(t) { return running(t) ? new Date(t.end).getTime() - Date.now() : (typeof t.left === 'number' ? t.left : t.mins * 60000); }
+  function timerDone(t) { return running(t) && leftMs(t) <= 0; }
   function msLeft(ms) {
     var s0 = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s0 / 3600), m = Math.floor(s0 % 3600 / 60), x = s0 % 60;
     return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0');
@@ -247,29 +258,42 @@
       '<span id="t-water" class="water" style="--level:' + level(t).toFixed(3) + '"></span></span>';
   }
   function timerBlock(d) {
-    var t = timerOf(d), done = leftMs(t) <= 0 || stale(t), rest = t.mode === 'rest';
+    var t = timerOf(d), rest = t.mode === 'rest';
     var modes = '<div class="mode-seg" role="group" aria-label="Timer mode">' +
       '<button class="' + (rest ? '' : 'on') + '" data-act="setMode" data-arg="work" aria-pressed="' + !rest + '">Work</button>' +
       '<button class="' + (rest ? 'on' : '') + '" data-act="setMode" data-arg="rest" aria-pressed="' + rest + '">Rest</button></div>';
-    if (done) {
+    if (timerDone(t)) {
       return modes + '<p class="t-done serif">' + (rest ? 'Rest is over.' : 'Time is up.') + '</p>' +
         '<div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">' + (rest
-          ? '<button class="btn ghost small-btn" data-act="startWork">Back to work</button><button class="btn ghost small-btn" data-act="startRest">5 more minutes</button>'
-          : '<button class="btn ghost small-btn" data-act="startRest">Rest ' + defaultMins(d, 'rest') + ' min</button><button class="btn ghost small-btn" data-act="moreTime">10 more minutes</button>') + '</div>';
+          ? '<button class="btn small-btn" data-act="startWork">Start working again</button>'
+          : '<button class="btn small-btn" data-act="startRest">Start a ' + defaultMins(d, 'rest') + '-minute rest</button><button class="btn ghost small-btn" data-act="moreTime">10 more minutes</button>') + '</div>';
     }
-    var chips = CHIPS[t.mode].map(function (x) {
-      return '<button class="' + (t.mins === x ? 'on' : '') + '" data-act="setBox" data-arg="' + x + '" aria-pressed="' + (t.mins === x) + '">' + x + ' min</button>';
-    }).join('');
-    var custom = CHIPS[t.mode].indexOf(t.mins) < 0;
-    chips += S.ui.custom
-      ? '<span class="custom-min"><input id="custom-min" type="number" inputmode="numeric" min="1" max="180" value="' + t.mins + '" aria-label="Minutes"><button data-act="setCustom">Set</button></span>'
-      : '<button class="' + (custom ? 'on' : '') + '" data-act="customToggle">' + (custom ? t.mins + ' min' : 'Custom') + '</button>';
+    var idle = !running(t) && leftMs(t) >= t.mins * 60000, paused = !running(t) && !idle;
+    var controls = running(t)
+      ? '<button class="btn ghost small-btn" data-act="timerPause">Pause</button><button class="link" data-act="timerReset">Reset</button>'
+      : '<button class="btn small-btn t-start" data-act="timerStart">' + (paused ? 'Resume' : (rest ? 'Start rest' : 'Start timer')) + '</button>' + (paused ? '<button class="link" data-act="timerReset">Reset</button>' : '');
+    var chips = '';
+    if (idle) {
+      chips = CHIPS[t.mode].map(function (x) {
+        return '<button class="' + (t.mins === x ? 'on' : '') + '" data-act="setBox" data-arg="' + x + '" aria-pressed="' + (t.mins === x) + '">' + x + ' min</button>';
+      }).join('');
+      var custom = CHIPS[t.mode].indexOf(t.mins) < 0;
+      chips += S.ui.custom
+        ? '<span class="custom-min"><input id="custom-min" type="number" inputmode="numeric" min="1" max="180" value="' + t.mins + '" aria-label="Minutes"><button data-act="setCustom">Set</button></span>'
+        : '<button class="' + (custom ? 'on' : '') + '" data-act="customToggle">' + (custom ? t.mins + ' min' : 'Custom') + '</button>';
+      chips = '<div class="seg chips box-chips" aria-label="Minutes">' + chips + '</div>';
+    }
     return modes + '<span id="t-left" class="t-left" role="timer" aria-live="off">' + msLeft(leftMs(t)) + '</span>' +
-      '<span class="small muted">' + (rest ? 'resting' : 'left') + ' · ' + t.mins + ' min</span>' +
-      '<div class="seg chips box-chips" aria-label="Minutes">' + chips + '</div>';
+      '<span class="small muted">' + (running(t) ? (rest ? 'resting' : 'left') : (paused ? 'paused' : 'Starts when you tap ' + (rest ? 'Start rest' : 'Start timer'))) + '</span>' +
+      chips + '<div class="row" style="justify-content:center;gap:14px;margin-top:4px">' + controls + '</div>';
   }
-  function restartTimer(d, mode, mins) {
-    d.timer = { mode: mode, start: new Date().toISOString(), mins: mins };
+  function restIdeas() {
+    return '<div class="rest-ideas stack"><span class="label">Ideas for a good rest</span>' +
+      REST_IDEAS.map(function (r) { return '<div class="rest-idea"><strong>' + r[0] + '</strong><span class="small muted">' + r[1] + '</span></div>'; }).join('') +
+      '<div class="rest-idea"><strong>Grounding pause</strong><span class="small muted">The guided audio below.</span></div></div>';
+  }
+  function setTimer(d, mode, mins, start) {
+    d.timer = { mode: mode, mins: mins, end: start ? new Date(Date.now() + mins * 60000).toISOString() : '', left: mins * 60000 };
     if (mode === 'work') d.workMins = mins; else d.restMins = mins;
     S.ui.custom = false; S.ui.timerDone = false; render();
   }
@@ -515,7 +539,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.6.1';
+  var APP_VERSION = 'v0.6.2';
   var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button></p>';
 
   /* The tour: the five things worth knowing first. */
@@ -572,12 +596,11 @@
         ? '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' +
           '<textarea id="step-input" class="plain" rows="3" data-bind="day.step">' + esc(d.step) + '</textarea></div>' +
           '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="editStep">Done</button></div>'
-        : '<div class="stack working-step"><span class="label">' + (d.timer && d.timer.mode === 'rest' ? 'Your step' : 'Working on') + '</span><p class="serif step-now">' + esc(d.step) + '</p></div>';
-      var w0 = W(monday(today()));
-      body = (has(w0.question) ? '<p class="small muted center-text">This week: ' + esc(w0.question) + '</p>' : '') +
+        : '<div class="stack working-step"><span class="label">Today\'s step</span><p class="serif step-now">' + esc(d.step) + '</p></div>';
+      body = stepBlock + lineCard() +
         '<div class="working-orb">' + timerBlob(d) + '</div>' +
         '<div id="work-time" class="working-time">' + timerBlock(d) + '</div>' +
-        stepBlock +
+        (timerOf(d).mode === 'rest' ? restIdeas() : '') + pausePanel() +
         field('Notice something? Jot it down', 'day.happened', d.happened, 'It will be waiting in your check-out.', 2) +
         '<div style="flex:1"></div>' +
         '<button class="btn" data-act="wrapUp">Wrap up for today</button>' +
@@ -620,7 +643,6 @@
         '<button class="btn ghost small-btn" style="flex:1" data-act="moveStep">Move to tomorrow</button>' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
         shrinkPanel(d) +
-        (d.energy || d.energySkipped ? lineCard() + pausePanel() : '') +
         '<button class="btn" data-act="startStep">Start my step</button>' +
         '<button class="link" data-act="wrapUp">Just record today</button>';
     }
@@ -1078,20 +1100,22 @@
     startStep: function () {
       var d = D();
       if (!has(d.step)) { toast('Write today\'s step first, or just record today.'); var el = document.getElementById('step-input'); if (el) el.focus(); return; }
-      stopPause(); d.step = d.step.trim(); d.ready = true; S.ui.shrink = false;
-      d.startedAt = new Date().toISOString(); d.timer = null;
-      restartTimer(d, 'work', defaultMins(d, 'work'));
+      d.step = d.step.trim(); d.ready = true; S.ui.shrink = false;
+      d.startedAt = new Date().toISOString(); d.timer = null; S.ui.timerDone = false; render();
     },
-    setBox: function (arg) { var d = D(); restartTimer(d, timerOf(d).mode, Number(arg)); },
-    setMode: function (arg) { var d = D(); var m = arg === 'rest' ? 'rest' : 'work'; if (timerOf(d).mode === m && leftMs(d.timer) > 0) return; restartTimer(d, m, defaultMins(d, m)); },
-    startRest: function () { var d = D(); restartTimer(d, 'rest', timerOf(d).mode === 'rest' ? 5 : defaultMins(d, 'rest')); },
-    startWork: function () { var d = D(); restartTimer(d, 'work', defaultMins(d, 'work')); },
-    moreTime: function () { var d = D(); d.timer = { mode: 'work', start: new Date().toISOString(), mins: 10 }; S.ui.timerDone = false; render(); },
+    timerStart: function () { var d = D(), t = timerOf(d); t.end = new Date(Date.now() + leftMs(t)).toISOString(); S.ui.timerDone = false; S.ui.custom = false; render(); },
+    timerPause: function () { var t = timerOf(D()); t.left = Math.max(0, leftMs(t)); t.end = ''; render(); },
+    timerReset: function () { var t = timerOf(D()); t.left = t.mins * 60000; t.end = ''; S.ui.timerDone = false; render(); },
+    setBox: function (arg) { var d = D(); setTimer(d, timerOf(d).mode, Number(arg)); },
+    setMode: function (arg) { var d = D(), m = arg === 'rest' ? 'rest' : 'work'; if (timerOf(d).mode === m) return; setTimer(d, m, defaultMins(d, m)); },
+    startRest: function () { var d = D(); setTimer(d, 'rest', defaultMins(d, 'rest'), true); },
+    startWork: function () { var d = D(); setTimer(d, 'work', defaultMins(d, 'work'), true); },
+    moreTime: function () { var d = D(); d.timer = { mode: 'work', mins: 10, end: new Date(Date.now() + 600000).toISOString(), left: 600000 }; S.ui.timerDone = false; render(); },
     customToggle: function () { S.ui.custom = true; render(); var el = document.getElementById('custom-min'); if (el) { el.focus(); el.select(); } },
     setCustom: function () {
       var el = document.getElementById('custom-min'), n = Math.round(Number(el && el.value));
       if (!(n >= 1 && n <= 180)) return toast('Pick between 1 and 180 minutes.');
-      var d = D(); restartTimer(d, timerOf(d).mode, n);
+      var d = D(); setTimer(d, timerOf(d).mode, n);
     },
     unstart: function () { var d = D(); d.startedAt = ''; d.wrappedAt = ''; d.timer = null; S.ui.editStep = false; render(); },
     editStep: function () {
@@ -1264,7 +1288,9 @@
     var d = S.days[today()];
     var working = S.screen === 'today' && d && d.startedAt && !d.out && !S.paused;
     if (!working) { if (document.title !== 'Grove') document.title = 'Grove'; return; }
-    var t = timerOf(d), left = leftMs(t);
+    var t = timerOf(d);
+    if (!running(t)) { if (document.title !== 'Grove') document.title = 'Grove'; return; }
+    var left = leftMs(t);
     document.title = (left > 0 ? msLeft(left) + (t.mode === 'rest' ? ' rest' : '') : (t.mode === 'rest' ? 'Rest is over' : 'Time is up')) + ' · Grove';
     var el = document.getElementById('t-left'); if (el) el.textContent = msLeft(left);
     var wv = document.getElementById('t-water'); if (wv) wv.style.setProperty('--level', level(t).toFixed(3));

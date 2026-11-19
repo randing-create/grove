@@ -290,3 +290,10 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .shrink { gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 14px 16px 10px; }
 .shrink-opt { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--line-strong); background: transparent; color: var(--text); font-size: 16px; line-height: 1.35; }
 .shrink-opt:active { transform: scale(0.98); }
+
+/* ---------- working page: timer controls and rest ideas ---------- */
+.t-start { min-width: 150px; }
+.rest-ideas { gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 14px 18px; }
+.rest-idea { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); }
+.rest-idea:first-of-type { border-top: none; }
+.rest-idea strong { font-weight: 600; font-size: 16px; }
