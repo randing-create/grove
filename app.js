@@ -45,33 +45,33 @@
     { key: 'seed', name: 'Seed', title: 'Choose what matters', fields: ['what', 'why'], prompts: ['vision', 'landscape', 'canvas'],
       when: 'You are unsure why this is worth building, or you keep switching ideas.',
       write: 'Why this matters to you, who gets stuck and when, and what you would notice if things got better for them.',
-      tryIt: 'Pick the part you are least sure about and make it this week\'s question.',
+      tryIt: 'Pick the part you are least sure about and make it this week\'s goal. Then tell one person it is for, and listen. That is Reach.',
       question: 'Which part of this idea am I least sure about?' },
     { key: 'root', name: 'Root', title: 'Know who it is for', fields: ['who', 'before', 'after'], prompts: ['profile', 'storyboard', 'conversation', 'persona'],
       when: 'You are building for "everyone", or you have not talked to anyone yet.',
       write: 'One real person. What is happening around them, what they tell themselves, how that feels, what they do or avoid. Then the same once the problem is solved.',
-      tryIt: 'Ask one person about the last time the problem happened. What did they do, what did they try, what did it cost them? Save one sentence in their words.',
+      tryIt: 'Ask one person about the last time the problem happened. What did they do, what did they try, what did it cost them? Save one sentence in their words. That is Reach.',
       question: 'What did one real person do the last time this problem came up?' },
     { key: 'sprout', name: 'Sprout', title: 'Make the smallest offer', fields: ['offer'], prompts: ['demo', 'concept'],
       when: 'You keep adding features, or you cannot say what it is in one breath.',
       write: 'The smallest version you could put in front of someone, who it is for and who it is not for.',
-      tryIt: 'Watch one real person use it on their own task. Say as little as you can.',
+      tryIt: 'Watch one real person use it on their own task. Say as little as you can. That is Reach.',
       question: 'What happens when one person tries the smallest version on their own task?' },
-    { key: 'bloom', name: 'Bloom', title: 'Show the work', fields: ['place'], prompts: ['content'],
+    { key: 'bloom', name: 'Bloom', title: 'Show the work', fields: ['place'], prompts: ['content', 'videoscript', 'notebooklm', 'handmade'],
       when: 'The work exists and nobody has seen it.',
       write: 'One place and one kind of person, and the one thing you want them to do next.',
-      tryIt: 'Share it once, there, with that ask. Note who actually does it.',
+      tryIt: 'Share it once, there, with that ask. Note who actually does it. Each reaction is Reach.',
       question: 'Who takes the next step when I show this in one place?' },
     { key: 'pollinate', name: 'Pollinate', title: 'Invite, follow up, let it travel', fields: ['invite'], prompts: ['pitch', 'followup', 'investors'],
       when: 'People say "nice" and nothing happens, or the work is not travelling beyond the people you know.',
       write: 'A concrete invitation and what saying yes involves, such as bringing a project, booking a trial, or paying a stated price.',
-      tryIt: 'Ask one person directly. Follow up once. Then ask them who else should see it. Record what they did and what a no or a silence taught you.',
+      tryIt: 'Ask one person directly. Follow up once. Then ask them who else should see it. Record what they did and what a no or a silence taught you. A no counts as Reach.',
       question: 'Who says yes to a concrete invitation, and who do they pass it on to?' }
   ];
 
   /* The questions Grove asks before it builds a prompt. Answers are saved, so each is written once. */
   var FIELDS = {
-    what: ['project.what', 'What are you working on?', 'A sentence is enough.'],
+    what: ['project.what', 'Your goal', 'A sentence is enough.'],
     why: ['project.why', 'Why does this matter to you?', 'Your own reason, in your own words.'],
     place: ['project.place', 'Where will you show it, and to whom?', 'One place and one kind of person.'],
     invite: ['project.invite', 'What do you want them to do next?', 'Try it, book a call, bring a project, pay a stated price.'],
@@ -80,15 +80,18 @@
     before: ['project.before', 'What is it like for them now?', 'What is happening, what they tell themselves, how it feels, what they do.'],
     after: ['project.after', 'What would be different once this is solved?', ''],
     offer: ['project.offer', 'What is the smallest thing you could offer them?', ''],
-    question: ['week.question', 'What do you want to find out this week?', ''],
+    question: ['week.question', 'This week\'s goal', ''],
     sign: ['week.sign', 'What sign would show it is going well?', ''],
-    step: ['day.step', 'What is today\'s step?', '']
+    step: ['day.step', 'What is today\'s step?', ''],
+    idealPlace: ['project.idealPlace', 'Where you are, and what you notice', 'e.g. the light, the sounds, the room'],
+    idealDoing: ['project.idealDoing', 'What you are doing, and with whom', 'e.g. the work itself, the people it is for'],
+    idealFeel: ['project.idealFeel', 'How it feels', 'e.g. in your body, your mood, your breath']
   };
   var PROMPTS = {
     conversation: { title: 'Prepare a real user conversation', blurb: 'Five neutral questions about the last time the problem came up, and a sentence to ask for the talk.', fields: ['what', 'who', 'question'],
       ask: ['Help me prepare one conversation with a real person this week.', 'Give me five neutral questions about the last time this problem came up for them: what they did, what they tried, what it cost them.', 'No leading questions and no pitching. Then write one short, friendly sentence I can use to ask for the conversation.'] },
     smaller: { title: 'Make this step smaller', blurb: 'Three ten-minute versions of today\'s step that can still teach you something.', fields: ['what', 'question', 'step'],
-      ask: ['Give me three smaller versions of today\'s step. Each should take about ten minutes and still teach me something about this week\'s question.'] },
+      ask: ['Give me three smaller versions of today\'s step. Each should take about ten minutes and still move this week\'s goal forward.'] },
     vision: { title: 'Say what this is in two sentences', blurb: 'A short description in your own words, and one small next step.', fields: ['what', 'who', 'after'],
       ask: ['Using only my words above, write two sentences: who this is for and what changes for them.', 'Then suggest one small next step I could take in ten to thirty minutes.', 'Do not add claims I did not make.'] },
     landscape: { title: 'What do people use today?', blurb: 'A look at how this problem gets solved now, including doing nothing.', fields: ['what', 'who'],
@@ -101,6 +104,12 @@
       ask: ['Help me plan the roughest demo that lets one person try this on their own task in ten minutes.', 'Tell me the one screen or step that matters, what I can fake, and what to leave out. Then write a prompt I can give to an AI building tool.', 'Explain each choice so I can change it myself.'] },
     concept: { title: 'Plan a quick test', blurb: 'What to show, what to ask, what to watch for, and what would change your mind.', fields: ['offer', 'who', 'question'],
       ask: ['Write a short test plan: what I show, what I ask the person to do, what I watch for, and what result would change my mind.', 'Remind me to stay quiet while they try.'] },
+    videoscript: { title: 'Write a one-minute video script', blurb: 'A hook, three short shots and an invitation, ready to record on your phone.', fields: ['what', 'who', 'before', 'after', 'invite'],
+      ask: ['Write a script for a 60-second phone video about this project, for the person described above.', 'Structure: a one-line hook for the first three seconds; three short shots, each with what I say and what the camera shows; one clear invitation at the end.', 'Use my own words where you can, keep sentences short, and mark anything you guessed with (guess). Do not invent results.'] },
+    notebooklm: { title: 'Make a short video in NotebookLM', blurb: 'A brief to paste into NotebookLM with your notes, so its video overview explains your project.', fields: ['what', 'who', 'after', 'question', 'invite'],
+      ask: ['Write a brief I can paste into NotebookLM together with my notes, so that its video overview explains this project to the person described above.', 'Include: who the video is for, the three points it should make in plain words, one real moment from this week (leave a blank for me to fill in), and the one thing I want viewers to do next.', 'Keep it under 200 words. Do not invent results or numbers.'] },
+    handmade: { title: 'Make it by hand', blurb: 'A paper or physical prototype you can put in front of someone this week.', fields: ['what', 'who', 'offer'],
+      ask: ['Help me make a hand-made prototype of this that I can put in front of one real person this week: paper, cardboard, sticky notes, a printed page, or a role-played session.', 'Give me two options. For each: the materials, how to make it in under an hour, and three things to ask the person while they try it.', 'Nothing digital is needed.'] },
     content: { title: 'What could I share, and where?', blurb: 'Five things to share that lead to one next action, and where to find these people.', fields: ['who', 'before', 'after', 'offer'],
       ask: ['Suggest five things I could share in one place where these people already are. Each one starts from their situation today and points to one next action.', 'Then suggest three kinds of places where I might find them.', 'Do not invent facts about my work or results.'] },
     pitch: { title: 'Practise the invitation', blurb: 'The AI plays your person while you make a concrete ask.', fields: ['who', 'offer', 'after'],
@@ -120,12 +129,12 @@
   function blank() {
     return {
       v: 2, screen: 'today',
-      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '' },
+      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '', idealPlace: '', idealDoing: '', idealFeel: '', ideal1: '', ideal2: '', ideal3: '', ideal4: '', ideal5: '', ideal6: '', offerPath: '', weeks: 4 },
       weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
       feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false },
       usage: { prompts: 0, offers: 0 },
-      ui: { confirm: '', viewWeek: '', note: '', theme: 'light', promptKind: '', promptFrom: 'week', lineIdx: 0, toured: false, tourIdx: 0, mapSeen: false }
+      ui: { confirm: '', viewWeek: '', note: '', theme: 'light', promptKind: '', promptFrom: 'week', lineIdx: 0, toured: false, tourIdx: 0, mapSeen: false, setupDone: false, setupIdx: 0, idealStep: 0, isExample: false }
     };
   }
 
@@ -154,7 +163,7 @@
           Object.keys(d).forEach(function (k) { base[k] = d[k]; });
           ['project', 'review', 'feedback', 'ui'].forEach(function (k) { base[k] = Object.assign({}, blank()[k], d[k] || {}); });
           base.ui.confirm = ''; base.ui.pause = false; base.ui.editStep = false; base.ui.shrink = false; base.ui.custom = false; base.ui.outDate = '';
-          if (base.screen === 'checkout' || base.screen === 'tour') base.screen = 'today';
+          if (base.screen === 'checkout' || base.screen === 'tour' || base.screen === 'setup') base.screen = 'today';
         }
       } else {
         var oldRaw = localStorage.getItem(OLD_KEY);
@@ -187,8 +196,9 @@
   function daysBetween(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
 
   var S = load();
-  /* Everyone sees the five-card tour once, new or not. It can be skipped and opened again from the footer. */
-  if (!S.ui.toured) { S.screen = 'tour'; S.ui.tourIdx = 0; }
+  /* Everyone goes through setup once, new or not (v0.7). It can be skipped, and opened again from the footer.
+     The five-card tour stays under "How Grove works". */
+  if (!S.ui.setupDone) { S.screen = 'setup'; S.ui.setupIdx = 0; S.ui.idealStep = 0; }
 
   function W(key) {
     if (!S.weeks[key]) S.weeks[key] = { question: '', sign: '', who: '', plan: {} };
@@ -317,12 +327,41 @@
     var keys = Object.keys(S.days).filter(function (k) { return S.days[k].person && S.days[k].out; }).sort();
     return keys.length ? keys[keys.length - 1] : '';
   }
+  /* Low energy (1-2): a few questions to look at it differently before choosing the step.
+     Self-compassion (asking what you would tell a friend) and reappraisal (what would make it easier). */
+  var DRAINS = ['Sleep', 'Worry', 'Too much on my plate', 'My body', 'Not sure'];
+  function reframeCard(d) {
+    if (!(d.energy && d.energy <= 2) || d.reframe === 'skipped') return '';
+    if (d.reframe === 'done') {
+      var bits = [d.drain, d.kind, d.easier].filter(has);
+      return bits.length ? '<button class="notice reframe-done" data-act="reframeOpen"><span class="label">What you noticed</span><span class="small">' + esc(bits.join(' · ')) + '</span></button>' : '';
+    }
+    var chips = DRAINS.map(function (x) { return '<button class="' + (d.drain === x ? 'on' : '') + '" aria-pressed="' + (d.drain === x) + '" data-act="drain" data-arg="' + esc(x) + '">' + x + '</button>'; }).join('');
+    return '<div class="reframe stack"><span class="label">Low energy is information, not a verdict</span>' +
+      '<p class="small">What is taking your energy today?</p><div class="seg chips">' + chips + '</div>' +
+      field('If a friend felt like this, what would you tell them?', 'day.kind', d.kind, 'e.g. you are allowed to go slowly today', 2) +
+      field('What would make the next ten minutes a little easier?', 'day.easier', d.easier, 'e.g. tea first, phone in another room', 2) +
+      '<div class="row" style="gap:14px"><button class="btn ghost small-btn" data-act="reframeDone">Done</button><button class="link" data-act="reframeSkip">Skip</button></div></div>';
+  }
+  function stepExamples(d) {
+    if (d.energy && d.energy <= 2) return ['Write three bullet points about it', 'Fix one small part, five minutes', 'Reread yesterday\'s note'];
+    if (d.energy === 3) return ['Work on one part for 25 minutes', 'Draft the next section', 'Write down the question I am stuck on'];
+    if (d.energy >= 4) return ['Show it to one person and ask one question', 'Make a rough version I can show', 'Ask someone who has done this before'];
+    return ['Work on one part for 25 minutes', 'Write three bullet points about it', 'Show it to one person'];
+  }
+  function exampleBanner() {
+    return S.ui.isExample ? '<div class="notice row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><span class="small">You are looking at an example.</span>' +
+      '<button class="btn ghost small-btn" data-act="clearExample">Clear it and start my own</button></div>' : '';
+  }
+  /* The Reach line: one reaction from someone it is for, each week. Personal when This Week has a name. */
   function personLine() {
-    var last = lastPerson();
-    if (!last) return { text: 'Nobody else has seen the work yet.', warn: true };
-    var n = daysBetween(last, today());
-    var when = n === 0 ? 'today' : (n === 1 ? 'yesterday' : n + ' days ago');
-    return { text: 'Someone else last saw it ' + when + '.', warn: last < monday(today()) };
+    var last = lastPerson(), wk = monday(today()), who = (W(wk).who || '').trim();
+    if (last && last >= wk) {
+      var n = daysBetween(last, today());
+      return { text: 'Reach: someone it is for reacted ' + (n === 0 ? 'today' : (n === 1 ? 'yesterday' : n + ' days ago')) + '.', warn: false };
+    }
+    if (who) return { text: 'This week: a reaction from ' + who + '. Not yet.', warn: true };
+    return { text: 'This week: one reaction from someone it is for. Not yet.', warn: true };
   }
   function hasAnyData() {
     return has(S.project.what) || Object.keys(S.days).some(function (k) { return S.days[k].out || has(S.days[k].step) || S.days[k].energy; }) ||
@@ -368,16 +407,17 @@
   function promptFilled(kind) { return PROMPTS[kind].fields.filter(function (k) { return has(fieldValue(k)); }).length; }
   function buildPrompt(kind) {
     var P = PROMPTS[kind];
-    var lines = ['I am using Grove, a journal that helps me turn an idea into an offer I can test with real people, one week at a time.', ''];
+    var lines = ['Help me move my project forward. Here is what I have so far.', ''];
     P.fields.forEach(function (k) {
       var v = fieldValue(k);
-      lines.push(FIELDS[k][1].replace(/\?$/, '') + ': ' + (has(v) ? v.trim() : '(not written yet)'));
+      lines.push(FIELDS[k][1].replace(/\?.*$/, '').replace(/\.$/, '') + ': ' + (has(v) ? v.trim() : '(not written yet)'));
     });
+    if (P.fields.indexOf('what') >= 0 && S.project.weeks) lines.push('Time I am giving it: ' + S.project.weeks + ' weeks');
     var d = D();
     if (d.energy) lines.push('My energy today: ' + d.energy + ' of 5');
     lines.push('');
     P.ask.forEach(function (a) { lines.push(a); });
-    lines.push('Suggest, do not decide for me. If something above is unclear, ask me one question first instead of guessing.');
+    lines.push('Suggest, don\'t decide for me. If something is unclear, ask me one question first.');
     return lines.join('\n');
   }
   function copyText(text, okMsg) {
@@ -462,13 +502,19 @@
       '<input id="energy-range" type="range" min="1" max="5" step="1" value="3">' +
       '<div class="row between small muted"><span>Empty</span><span>High</span></div></div>';
   }
-  function statsFor(wk) {
-    var notes = notesIn(wk);
-    return { shown: notes.length, evidence: notes.filter(function (n) { return n.evidence && has(n.happened); }).length, person: notes.filter(function (n) { return n.person; }).length };
+  /* The three weekly rings guard against the three ways a side project dies (spec in docs/PRODUCT.md):
+     outer Show up (you stop) = days you checked in: started a step, chose rest, or recorded the day; target 7;
+     middle Learn (you polish) = days you checked out with at least one line written (not rest days); target 3;
+     inner Reach (you hide) = a reaction from someone it is for; target 1. */
+  function ringStats(recs) {
+    return { shown: recs.filter(function (r) { return r.startedAt || r.out || r.rest; }).length, target: 7,
+      learn: recs.filter(function (r) { return r.out && !r.rest && (has(r.happened) || has(r.changes)); }).length, learnTarget: 3,
+      reach: recs.filter(function (r) { return r.out && r.person; }).length };
   }
+  function statsFor(wk) { return ringStats(weekDays(wk).map(function (k) { return S.days[k]; }).filter(Boolean)); }
   function weekRing(st, size) {
-    var arcs = [[50, Math.min(1, st.shown / 7), 'var(--green)'], [37, Math.min(1, st.evidence / 3), 'var(--gold)'], [24, Math.min(1, st.person), 'var(--lilac)']];
-    var out = '<svg class="weekring" width="' + size + '" height="' + size + '" viewBox="0 0 120 120" role="img" aria-label="Showed up ' + st.shown + ' of 7 days, ' + st.evidence + ' of 3 evidence notes, seen by someone on ' + st.person + (st.person === 1 ? ' day' : ' days') + '">';
+    var arcs = [[50, Math.min(1, st.shown / st.target), 'var(--green)'], [37, Math.min(1, st.learn / st.learnTarget), 'var(--gold)'], [24, Math.min(1, st.reach), 'var(--lilac)']];
+    var out = '<svg class="weekring" width="' + size + '" height="' + size + '" viewBox="0 0 120 120" role="img" aria-label="Show up ' + st.shown + ' of ' + st.target + ', learn ' + st.learn + ' of ' + st.learnTarget + ', reach ' + (st.reach ? 'done' : 'not yet') + '">';
     arcs.forEach(function (a) {
       var c = 2 * Math.PI * a[0];
       out += '<circle cx="60" cy="60" r="' + a[0] + '" fill="none" stroke="var(--line)" stroke-width="10"/>';
@@ -478,9 +524,9 @@
   }
   function ringLegend(st) {
     var row = function (color, text) { return '<span class="row small"><span class="key" style="background:var(--' + color + ')"></span>' + text + '</span>'; };
-    var closed = st.shown >= 7 && st.evidence >= 3 && st.person >= 1;
-    return '<div class="stack" style="gap:8px">' + row('green', 'Showed up ' + Math.min(st.shown, 7) + ' of 7') + row('gold', 'Evidence ' + Math.min(st.evidence, 3) + ' of 3') +
-      row('lilac', 'Seen by someone ' + (st.person ? 'yes' : 'not yet')) + (closed ? '<span class="small warn">All three rings closed this week.</span>' : '<span class="small muted">Rest days count as showing up.</span>') + '</div>';
+    var closed = st.shown >= st.target && st.learn >= st.learnTarget && st.reach >= 1;
+    return '<div class="stack" style="gap:8px">' + row('green', 'Show up ' + Math.min(st.shown, st.target) + ' of ' + st.target) + row('gold', 'Learn ' + Math.min(st.learn, st.learnTarget) + ' of ' + st.learnTarget) +
+      row('lilac', 'Reach ' + (st.reach ? 'done' : 'not yet')) + (closed ? '<span class="small warn">All three rings closed this week.</span>' : '<span class="small muted">Ideas die three ways: you stop, you polish, you hide.</span>') + '</div>';
   }
   function offerText() {
     var v = function (k) { return (fieldValue(k) || '').trim(); };
@@ -539,17 +585,17 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.6.2';
-  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button></p>';
+  var APP_VERSION = 'v0.7';
+  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button></p>';
 
   /* The tour: the five things worth knowing first. */
   var TOUR = [
     { art: function () { return '<span class="blob lv3 tour-blob" aria-hidden="true"></span>'; },
       title: 'One small step a day',
       body: 'Tell Grove how much energy you have, and size one step to fit. On a low day, ten minutes counts.' },
-    { art: function () { return weekRing({ shown: 4, evidence: 2, person: 1 }, 132); },
-      title: 'Three rings tell you if the idea got out this week',
-      body: 'One for the days you showed up (rest days count), one for notes that count as evidence, one for someone else seeing the work. That last one matters most.' },
+    { art: function () { return weekRing({ shown: 5, target: 7, learn: 2, learnTarget: 3, reach: 1 }, 132); },
+      title: 'Ideas die three ways: you stop, you polish, you hide',
+      body: 'Three rings guard against them. Show up: check in every day, to work or to rest. Learn: check out and write what happened. Reach, in the middle: one reaction from someone it is for.' },
     { art: function () { return '<span class="logo-big tour-logo">' + LOGO + '</span>'; },
       title: 'Decide on Sunday',
       body: 'Look back at what happened and choose: continue, adjust or pause. Each review is kept as a Growth Ring.' },
@@ -570,18 +616,20 @@
     var w = W(monday(today()));
     var pl = personLine();
     var head = '<header class="top"><span class="brand">' + LOGO + 'Grove</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
-    var intro = hasAnyData() ? '' :
-      '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><p class="serif">Turn an idea you care about into an offer you can test.</p>' +
-      '<p class="small muted">Start with a step below. Nothing else needs filling in first.</p>' +
-      '<div class="row wrap"><button class="btn ghost small-btn" data-act="example">Load the Grove example</button>' +
-      '<button class="btn ghost small-btn" data-act="go" data-arg="week">Plan this week</button>' +
-      '<button class="btn ghost small-btn" data-act="go" data-arg="map">Set up step by step</button></div></div>';
+    var intro = exampleBanner() + (hasAnyData() ? '' :
+      '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><p class="serif">Make the thing you keep putting off.</p>' +
+      '<p class="small muted">One small step each time you sit down to it. One real reaction each week.</p>' +
+      '<div class="row wrap"><button class="btn ghost small-btn" data-act="setupAgain">Set up my goal</button>' +
+      '<button class="btn ghost small-btn" data-act="example">See an example</button></div></div>');
     var due = (!S.paused && reviewWeek() !== monday(today()))
       ? '<div class="notice stack"><p>Last week has not been reviewed yet.</p><div class="row"><button class="btn ghost small-btn" data-act="go" data-arg="review">Review last week</button></div></div>'
       : '';
     var weekLine = '<button class="row" style="background:none;border:none;text-align:left;padding:0;gap:14px;align-items:flex-start;width:100%" data-act="go" data-arg="week"><span class="stack" style="gap:6px;flex:1;min-width:0">' +
-      '<span class="label">This week\'s question</span>' +
-      '<span class="serif' + (has(w.question) ? '' : ' empty') + '">' + (has(w.question) ? esc(w.question) : 'No question yet. Add one in This Week.') + '</span>' +
+      (has(w.question)
+        ? '<span class="label">This week\'s goal</span><span class="serif">' + esc(w.question) + '</span>'
+        : (has(S.project.what)
+          ? '<span class="label">Your goal</span><span class="serif">' + esc(S.project.what) + '</span>'
+          : '<span class="label">Your goal</span><span class="serif empty">No goal yet. Tap Setup at the bottom to add one.</span>')) +
       '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span></span>' + weekRing(statsFor(monday(today())), 68) + '</button>';
     var body;
     var yOpen = openYesterday();
@@ -633,11 +681,13 @@
       var planned = has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '';
       var size = sizeLine(d.energy);
       var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
-      body = energy + restNote +
+      body = energy + restNote + reframeCard(d) +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
+        '<span class="small muted">' + (has(S.project.what) ? 'What is one small thing that moves "' + esc(S.project.what) + '" forward today?' : 'What is one small thing you could do today?') + '</span>' +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
         (size ? '<span class="small muted">' + esc(size) + '</span>' : '') +
-        (d.energy && d.energy <= 2 && has(d.step) && !d.shrunk && !S.ui.shrink ? '<button class="link" style="align-self:flex-start;padding:0" data-act="smaller">Show smaller versions</button>' : '') + '</div></div>' +
+        (d.energy && d.energy <= 2 && has(d.step) && !d.shrunk && !S.ui.shrink ? '<button class="link" style="align-self:flex-start;padding:0" data-act="smaller">Show smaller versions</button>' : '') +
+        (!has(d.step) ? '<div class="seg chips step-examples" aria-label="Examples">' + stepExamples(d).map(function (x) { return '<button data-act="useExampleStep" data-arg="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' : '') + '</div></div>' +
         '<div class="row wrap">' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="smaller">Make it smaller</button>' +
         '<button class="btn ghost small-btn" style="flex:1" data-act="moveStep">Move to tomorrow</button>' +
@@ -711,6 +761,90 @@
       '<p class="small muted">' + (S.ui.pauseEnded ? 'That is the pause. Start whenever you like.' : 'Stop whenever you want. Your step is waiting below.') + '</p></div>';
   }
 
+  /* Setup (v0.7): what Grove is, your goal, your ideal day, why energy matters. Every step can be skipped. */
+  var GOAL_STARTERS = ['Finish ', 'Test ', 'Launch ', 'Write ', 'Learn ', 'Get better at '];
+  /* Ideal working day: four short scenes, each a few questions, with a box to jot right there.
+     The moments that matter for getting started: waking, starting, working, stopping. */
+  var IDEAL_PROMPTS = [
+    'Imagine a working day a few months from now. The thing you have been putting off is moving. You are just waking up. What do you hear? How does your body feel? You know you will work on it today. Notice how that feels.',
+    'It is time to work on it. Where are you? What time is it, what is the light like? What is the very first thing you do? Today, starting is easy. Notice what makes it easy.',
+    'You are in the middle of it. What exactly are you making? Is anyone with you? Notice your shoulders, your chest, your face. Something is working. What is it?',
+    'You are done for today. Look at what you made. Who is it for? How do you feel right now? Find one small detail you want to keep.'
+  ];
+  var ENERGY_GUIDE = [
+    ['Empty', 'drained, numb', 'rest counts, or five minutes'],
+    ['Low', 'tired, foggy, worried', 'something small and familiar'],
+    ['Okay', 'steady, a bit flat', 'one focused block'],
+    ['Good', 'clear, curious', 'the step that teaches most'],
+    ['High', 'bright, brave', 'the bold one: show it, ask, invite']
+  ];
+  var SETUP_STEPS = 5;
+  function idealLines() {
+    var jots = [1, 2, 3, 4, 5, 6].map(function (n) { return S.project['ideal' + n]; }).filter(has);
+    return jots.length ? jots : [S.project.idealPlace, S.project.idealDoing, S.project.idealFeel].filter(has);
+  }
+  function idealText() { return idealLines().join(' · '); }
+  screens.setup = function () {
+    var i = Math.min(Math.max(S.ui.setupIdx || 0, 0), SETUP_STEPS - 1), body = '', next = '';
+    var goal = (S.project.what || '').trim();
+    if (i === 0) {
+      body = '<div class="tour-art"><span class="logo-big tour-logo">' + LOGO + '</span></div>' +
+        '<div class="stack tour-text"><h1>Make the thing you keep putting off</h1>' +
+        '<p class="muted">One small step each time you sit down to it. One real reaction from someone it is for, each week.</p></div>';
+      next = '<button class="btn" data-act="setupStep" data-arg="1">Set it up · two minutes</button>';
+    } else if (i === 1) {
+      var chips = GOAL_STARTERS.map(function (g) { return '<button data-act="goalStarter" data-arg="' + esc(g) + '">' + esc(g.trim()) + '…</button>'; }).join('');
+      var yes = S.project.offerPath === 'yes', no = S.project.offerPath === 'no';
+      body = '<div class="stack tour-text"><h1>What do you want to make?</h1>' +
+        '<p class="muted">A project, or a skill like focus. One line. Tap a starter if it helps.</p></div>' +
+        '<div class="card"><div><label class="label" for="goal-input">Your goal</label>' +
+        '<textarea id="goal-input" class="plain" rows="2" data-bind="project.what" placeholder="e.g. Finish the first chapter">' + esc(S.project.what) + '</textarea></div></div>' +
+        '<div class="seg chips goal-chips">' + chips + '</div>' +
+        '<div class="stack" style="gap:10px"><span class="label">Do you want to turn it into something you offer others?</span>' +
+        '<div class="seg"><button class="' + (yes ? 'on' : '') + '" aria-pressed="' + yes + '" data-act="offerPath" data-arg="yes">Yes</button>' +
+        '<button class="' + (no ? 'on' : '') + '" aria-pressed="' + no + '" data-act="offerPath" data-arg="no">Not now</button></div>' +
+        (yes ? '<p class="small muted">The Growth Map walks you from idea to offer in five steps. Open it any time from the tab at the bottom.</p>' : '') + '</div>';
+      next = '<button class="btn" data-act="setupStep" data-arg="2">Next</button>';
+    } else if (i === 2) {
+      body = '<div class="stack tour-text"><h1>How you feel decides what you do</h1>' +
+        '<p class="muted">Starting is easier when you can already feel where you are going. So next, a short picture of your ideal working day.</p>' +
+        '<p class="muted">And each time you check in, Grove asks about your energy. Low energy narrows what feels possible; higher energy widens it. The step is sized to fit.</p></div>' +
+        '<div class="energy-guide">' + ENERGY_GUIDE.map(function (e, n) {
+          return '<div class="eg-row"><span class="blob lv' + (n + 1) + ' eg-dot" aria-hidden="true"></span><span class="small"><strong>' + e[0] + '</strong> · ' + e[1] + ' <span class="muted">→ ' + e[2] + '</span></span></div>';
+        }).join('') + '</div>' +
+        '<p class="small muted">Based on research on how emotions widen or narrow attention (Fredrickson, 2001). More in Why it works, at the bottom of the Growth Map.</p>';
+      next = '<button class="btn" data-act="setupStep" data-arg="3">Picture it</button>';
+    } else if (i === 3) {
+      var k = Math.min(S.ui.idealStep || 0, IDEAL_PROMPTS.length);
+      var guide = k < IDEAL_PROMPTS.length
+        ? '<div class="ideal-guide"><span class="blob lv3 breathe-slow ideal-blob" aria-hidden="true"></span>' +
+          '<p class="serif ideal-text">' + esc(IDEAL_PROMPTS[k]) + '</p>' +
+          '<textarea class="ideal-jot" rows="2" data-bind="project.ideal' + (k + 1) + '" placeholder="A few words. You can also tap the microphone on your keyboard.">' + esc(S.project['ideal' + (k + 1)] || '') + '</textarea>' +
+          '<span class="small muted">' + (k + 1) + ' of ' + IDEAL_PROMPTS.length + '</span>' +
+          '<div class="row" style="justify-content:center;gap:16px">' + (k > 0 ? '<button class="link" data-act="idealBack">Back</button>' : '') +
+          '<button class="btn ghost small-btn" data-act="idealNext">' + (k === IDEAL_PROMPTS.length - 1 ? 'Finish' : 'Continue') + '</button></div></div>'
+        : '<div class="ideal-recap stack"><span class="label">Your ideal working day</span>' + (idealText() ? idealLines().map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') : '<p class="small muted">Nothing written this time. That is fine.</p>') +
+          '<button class="link" style="align-self:flex-start" data-act="idealRestart">Walk through it again</button></div>';
+      body = '<div class="stack tour-text"><h1>Your ideal working day</h1>' +
+        '<p class="muted">Imagine' + (goal ? ' "' + esc(goal) + '"' : ' it') + ' going well. Jot a few words as you go.</p></div>' +
+        guide + '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>';
+      next = '<button class="btn" data-act="setupStep" data-arg="4">Next</button>';
+    } else {
+      var wk = monday(today()), w = W(wk), weeks = S.project.weeks || 4;
+      var wchips = [2, 4, 6, 8].map(function (n) { return '<button class="' + (weeks === n ? 'on' : '') + '" aria-pressed="' + (weeks === n) + '" data-act="setWeeks" data-arg="' + n + '">' + n + ' weeks</button>'; }).join('');
+      body = '<div class="stack tour-text"><h1>Plan the first week</h1>' +
+        '<p class="muted">A short horizon keeps it real. You can change both later in This Week.</p></div>' +
+        '<div class="stack" style="gap:10px"><span class="label">How long will you give it?</span><div class="seg">' + wchips + '</div></div>' +
+        field('This week\'s goal', 'week.question', w.question, 'e.g. Draft the outline and get one reaction to it', 2);
+      next = '<button class="btn" data-act="setupDone">Start today</button>';
+    }
+    var dots = []; for (var k2 = 0; k2 < SETUP_STEPS; k2++) dots.push('<span class="tdot' + (k2 === i ? ' on' : '') + '"></span>');
+    return '<section class="screen tour setup">' +
+      '<header class="top">' + (i ? '<button class="icon-btn" aria-label="Back" data-act="setupStep" data-arg="' + (i - 1) + '">' + svg('back', 24) + '</button>' : '<span class="brand">' + LOGO + 'Grove</span>') +
+      '<button class="link" data-act="setupDone">Skip setup</button></header>' +
+      body + '<div style="flex:1"></div><div class="tdots" aria-hidden="true">' + dots.join('') + '</div>' + next + '</section>';
+  };
+
   screens.tour = function () {
     var i = Math.min(Math.max(S.ui.tourIdx || 0, 0), TOUR.length - 1), t = TOUR[i], last = i === TOUR.length - 1;
     var dots = TOUR.map(function (x, k) { return '<span class="tdot' + (k === i ? ' on' : '') + '"></span>'; }).join('');
@@ -730,6 +864,12 @@
   /* Why it works: the ideas behind Grove, in our own words, with where each comes from. Reached quietly from
      the bottom of the Growth Map. Sources were checked before they were added; add only ones you can check. */
   var WHY = [
+    { title: 'Picture where you are going',
+      body: 'A vivid, sensory picture of a good working day gives the small daily steps a direction you can feel, not only reason about. That is the ideal working day in setup.',
+      source: 'Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method, in which Ran is certified.' },
+    { title: 'Energy changes what feels possible',
+      body: 'Feelings vary in how pleasant and how activated they are. Pleasant states tend to widen attention and the options we can see; heavy ones narrow it. Grove asks about energy first and sizes the step to it.',
+      source: 'Barbara Fredrickson, "The role of positive emotions in positive psychology: The broaden-and-build theory of positive emotions", American Psychologist, 2001. James Russell, "A circumplex model of affect", Journal of Personality and Social Psychology, 1980. The low-energy questions borrow from self-compassion research: Kristin Neff, "Self-compassion", Self and Identity, 2003.' },
     { title: 'Small enough for your worst day',
       body: 'A step you can take on a low day beats a plan you keep putting off. That is why Grove asks about your energy first and sizes the step to it.',
       source: 'Martha Beck\'s coaching work, which Ran trained and is certified in. She calls these "turtle steps": steps so small you could take them on your worst day. Finding Your Own North Star, 2001.' },
@@ -757,7 +897,7 @@
       WHY.map(function (w) {
         return '<div class="why-item stack"><h2 class="serif">' + w.title + '</h2><p>' + w.body + '</p><p class="small muted">' + w.source + '</p></div>';
       }).join('') +
-      '<div class="notice stack"><span class="label">What we do not claim</span><p class="small">The energy check is our own idea, and so is how the pieces fit together. No study shows that Grove itself works. The pilot is how we find out. Grove is a tool, not coaching or therapy.</p></div>' +
+      '<div class="notice stack"><span class="label">What we do not claim</span><p class="small">The five energy levels and their descriptions are our own simplification, and so is how the pieces fit together. Ran also draws on David Hawkins\'s Map of Consciousness as a personal lens; its numbers are not scientific, so Grove does not use them. No study shows that Grove itself works. The pilot is how we find out. Grove is a tool, not coaching or therapy.</p></div>' +
       FOOT + '</section>';
   };
 
@@ -781,9 +921,9 @@
       '<header class="top">' + backBtn('today') + '<span class="small muted">Check-out' + (date !== today() ? ' · ' + esc(nice(date)) : '') + '</span></header>' +
       '<h1>One thing I learned</h1>' + summary + results + instead +
       field('What actually happened?', 'day.happened', d.happened, 'What you saw or heard, in plain words.', 3) +
-      field('What does it change about my next step?', 'day.changes', d.changes, 'One line is enough.', 2) +
-      check('Someone other than me saw or tried it today', 'day.person', d.person) +
-      check('Count this note as evidence for this week\'s question', 'day.evidence', d.evidence) +
+      field('What will you do differently next time?', 'day.changes', d.changes, 'One line is enough.', 2) +
+      check('Someone it is for reacted to it today', 'day.person', d.person) +
+      '<p class="small muted" style="margin-top:-12px">A reply, a question, even a no. To the idea, a sketch, or the real thing.</p>' +
       field((date !== today() ? 'Step for ' + nice(tm) : 'Tomorrow\'s step') + ' (optional)', 'plan.' + tm, planFor(tm).step, 'Leave it empty if you do not know yet.', 2) +
       '<div style="flex:1"></div>' +
       '<button class="btn" data-act="saveCheckout">' + (date !== today() ? 'Save this day' : (d.out ? 'Save changes' : 'Save today')) + '</button></section>';
@@ -797,30 +937,30 @@
     var pl = personLine();
     var rows = weekDays(wk).map(function (k) {
       var p = planFor(k); var rec = S.days[k];
-      var mark = rec && rec.out ? '<span class="dot filled' + (rec.evidence ? ' evidence' : '') + '"></span>' : '<span class="dot' + (k === today() ? ' today' : '') + '"></span>';
-      var did = rec && rec.out && has(rec.happened) ? '<span class="small muted">' + (rec.person ? 'Seen by someone · ' : '') + esc(rec.happened) + '</span>' : '';
+      var mark = rec && rec.out ? '<span class="dot filled' + (!rec.rest && has(rec.changes) ? ' evidence' : '') + '"></span>' : '<span class="dot' + (k === today() ? ' today' : '') + '"></span>';
+      var did = rec && rec.out && has(rec.happened) ? '<span class="small muted">' + (rec.person ? 'Reach · ' : '') + esc(rec.happened) + '</span>' : '';
       return '<div class="dayrow"><div class="row" style="gap:10px">' + mark + '<label class="label" for="p-' + k + '" style="width:58px">' + esc(shortDay(k)) + '</label>' +
         '<input id="p-' + k + '" type="text" data-bind="plan.' + k + '" value="' + esc(p.step) + '" placeholder="' + (p.rest ? 'Rest' : 'One small step') + '">' +
         '<button class="btn ghost small-btn rest' + (p.rest ? ' on' : '') + '" aria-pressed="' + p.rest + '" data-act="toggleRest" data-arg="' + k + '">Rest</button></div>' + did + '</div>';
     }).join('');
     var ringList = S.rings.length ? '<div class="list">' + S.rings.slice().reverse().map(function (r) {
       var rn = r.notes || [];
-      return '<div>' + weekRing({ shown: rn.length, evidence: rn.filter(function (n) { return n.evidence && has(n.happened); }).length, person: rn.filter(function (n) { return n.person; }).length }, 48) + '<span><span class="small muted">' + esc(range(r.week)) + ' · ' + esc(r.decisionLabel) + '</span><br>' +
+      return '<div>' + weekRing(ringStats(rn.map(function (n) { return Object.assign({ out: true }, n); })), 48) + '<span><span class="small muted">' + esc(range(r.week)) + ' · ' + esc(r.decisionLabel) + '</span><br>' +
         (has(r.question) ? esc(r.question) + '<br>' : '') + (has(r.reason) ? '<span class="small muted">' + esc(r.reason) + '</span>' : '') + '</span></div>';
     }).join('') + '</div>' : '<p class="muted">A finished review becomes a Growth Ring here.</p>';
     var dark = S.ui.theme === 'dark';
 
     return '<section class="screen wide">' +
-      '<header class="top"><span class="brand">' + (isCur ? 'This Week' : 'Next Week') + '</span><span class="small muted">' + esc(range(wk)) + '</span></header>' +
+      '<header class="top"><span class="brand">' + (isCur ? 'This Week' : 'Next Week') + '</span><span class="small muted">' + esc(range(wk)) + '</span></header>' + exampleBanner() +
       (S.ui.note ? '<div class="notice">' + esc(S.ui.note) + '</div>' : '') +
       '<div class="seg" role="group" aria-label="Which week">' +
       '<button class="' + (isCur ? 'on' : '') + '" aria-pressed="' + isCur + '" data-act="showWeek" data-arg="' + cur + '">This week</button>' +
       '<button class="' + (!isCur ? 'on' : '') + '" aria-pressed="' + !isCur + '" data-act="showWeek" data-arg="' + addDays(cur, 7) + '">Plan next week</button></div>' +
       '<div class="cols"><div class="g g1">' +
       (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' : '') +
-      field('One question or outcome for the week', 'week.question', w.question, 'What do you want to find out?', 2) +
+      field('This week\'s goal', 'week.question', w.question, 'What do you want to have done or found out by Sunday?', 2) +
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
-      field('Who will see or try it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
+      field('Who could react to it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
       (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' : '') +
       '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
       (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
@@ -860,7 +1000,7 @@
     var kind = PROMPTS[S.ui.promptKind] ? S.ui.promptKind : 'conversation';
     var P = PROMPTS[kind];
     return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn(S.ui.promptFrom === 'map' ? 'map' : 'week') + '<span class="small muted">AI Tool Shed</span></header>' +
+      '<header class="top">' + backBtn(S.ui.promptFrom === 'map' ? 'map' : (S.ui.promptFrom === 'review' ? 'review' : 'week')) + '<span class="small muted">AI Tool Shed</span></header>' +
       '<h1>' + esc(P.title) + '</h1><p class="muted">' + esc(P.blurb) + '</p>' +
       '<p class="small muted">Answer what you can. Grove keeps your answers, so you only write them once.</p>' +
       P.fields.map(function (k) { var f = FIELDS[k]; return field(f[1], f[0], fieldValue(k), f[2], 2); }).join('') +
@@ -912,14 +1052,14 @@
     var w = W(wk);
     var notes = notesIn(wk);
     var withNote = notes.filter(function (n) { return has(n.happened); });
-    var evidence = notes.filter(function (n) { return n.evidence && has(n.happened); }).length;
-    var people = notes.filter(function (n) { return n.person; }).length;
+    var st = statsFor(wk);
+    var people = st.reach;
     var steps = notes.filter(function (n) { return has(n.step) && !n.rest; }).length;
     var notice = '';
     if (!people) {
-      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>Nobody else saw it</span><p>No one other than you saw or tried the work this week. That is the first thing to change next week.</p></div>';
-    } else if (evidence < 3) {
-      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>Can\'t tell yet</span><p>' + evidence + ' note' + (evidence === 1 ? '' : 's') + ' counted as evidence. Fewer than three is thin. You can still decide.</p></div>';
+      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>No reach yet</span><p>No reaction from someone it is for this week. That is the first thing to change next week.</p></div>';
+    } else if (st.learn < st.learnTarget) {
+      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>Little to learn from</span><p>' + st.learn + ' of ' + st.learnTarget + ' check-outs had a note this week. Fewer is thin. You can still decide.</p></div>';
     }
     var seg = DECISIONS.map(function (x) {
       var on = S.review.decision === x[0];
@@ -931,10 +1071,13 @@
       '<div class="two"><div><span class="label">The question</span><span' + (has(w.question) ? '' : ' class="empty"') + '>' + (has(w.question) ? esc(w.question) : 'Not set') + '</span>' +
       (has(w.sign) ? '<span class="small muted">Sign: ' + esc(w.sign) + '</span>' : '') + '</div>' +
       '<div><span class="label">What happened</span>' + (withNote.length ? withNote.map(function (n) {
-        return '<span><span class="small muted">' + esc(shortDay(n.date)) + (n.evidence ? ' · evidence' : '') + (n.person ? ' · seen by someone' : '') + '</span><br>' + esc(n.happened) + '</span>';
+        return '<span><span class="small muted">' + esc(shortDay(n.date)) + (n.person ? ' · reach' : '') + '</span><br>' + esc(n.happened) + (has(n.changes) ? '<br><span class="small muted">Next time: ' + esc(n.changes) + '</span>' : '') + '</span>';
       }).join('') : '<span class="empty">Nothing written down yet</span>') + '</div></div>' +
-      '<p class="small muted">' + steps + ' day' + (steps === 1 ? '' : 's') + ' with a step · someone else saw it on ' + people + ' day' + (people === 1 ? '' : 's') + '</p>' +
+      '<div class="row" style="gap:18px">' + weekRing(st, 96) + ringLegend(st) + '</div>' +
       notice +
+      (idealText() ? '<div class="notice stack" style="gap:4px"><span class="label">Your ideal working day</span><p class="small">' + esc(idealText()) + '</p><span class="small muted">Did this week move you closer to it?</span></div>' : '') +
+      '<details class="stack"><summary class="label">Show your work next week · ask your AI for help</summary>' +
+      promptCard('videoscript', 'review') + promptCard('notebooklm', 'review') + promptCard('handmade', 'review') + '</details>' +
       '<p class="serif">What do you want to do next? Your call.</p>' +
       '<div class="seg" role="group" aria-label="Decision">' + seg + '</div>' +
       field('Why?', 'review.reason', S.review.reason, 'One or two sentences in your own words.', 3) +
@@ -944,7 +1087,9 @@
 
   screens.map = function () {
     return '<section class="screen">' +
-      '<header class="top"><span class="brand">Growth Map</span><span class="small muted">Optional</span></header>' +
+      '<header class="top"><span class="brand">Growth Map</span><span class="small muted">Optional</span></header>' + exampleBanner() +
+      (has(S.project.what) ? '<div class="notice stack" style="gap:4px"><span class="label">Your goal</span><span>' + esc(S.project.what) + '</span></div>' : '') +
+      '<p class="small muted">For turning a project into something you offer others. Not sure where to start? Open the step that sounds most like where you are now.</p>' +
       '<p class="muted">Work through the five steps in order, or open only the one you need. What you write here fills in your AI prompts and your offer card.</p>' +
       MAP.map(function (m, i) {
         return '<details class="mapstep"><summary><span class="tile t-' + m.key + '">' + svg(m.key, 28) + '</span>' +
@@ -954,7 +1099,7 @@
           '<div><span class="label">Open it when</span><p>' + esc(m.when) + '</p></div>' +
           '<div class="stack"><span class="label">Write down</span><p class="small muted">' + esc(m.write) + '</p>' + m.fields.map(function (k) { var f = FIELDS[k]; return field(f[1], f[0], fieldValue(k), f[2], 2); }).join('') + '</div>' +
           '<div><span class="label">Try it</span><p>' + esc(m.tryIt) + '</p></div>' +
-          '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="useQuestion" data-arg="' + i + '">Use as this week\'s question</button>' +
+          '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="useQuestion" data-arg="' + i + '">Use as this week\'s goal</button>' +
           (m.key === 'sprout' ? '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="go" data-arg="offer">Make an offer card</button>' : '') +
           '<span class="label">Ask your AI for help</span>' + m.prompts.map(function (k) { return promptCard(k, 'map'); }).join('') +
           '</div></details>';
@@ -987,7 +1132,7 @@
   function loadExample() {
     var t = today(); var wk = monday(t); var theme = S.ui.theme;
     S = blank(); S.ui.theme = theme;
-    S.project = { what: 'Grove: a journal that helps women turn an idea into an offer they can test.',
+    S.project = { what: 'Grove: help women make the thing they keep putting off, one small step at a time.',
       why: 'I kept polishing my own idea instead of showing it to anyone. I want a tool that gets me out of that.',
       who: 'An independent consultant, freelancer or creative with years of experience, who wants to turn what she knows into a small product.',
       before: 'She has started on an idea she cares about. She keeps refining it or learning another tool. At the end of the week she still does not know how someone would use it.',
@@ -1011,7 +1156,8 @@
     go: function (arg) { go(arg); },
     example: function (arg) {
       if (hasAnyData() && arg !== 'yes') { S.ui.confirm = 'example'; return render(); }
-      loadExample(); render(); toast('Example loaded. Everything in it can be edited.');
+      var ui = { setupDone: true, toured: true, mapSeen: S.ui.mapSeen };
+      loadExample(); Object.assign(S.ui, ui, { isExample: true }); render(); toast('This is an example. Clear it any time from the banner at the top.');
     },
     clear: function (arg) {
       if (arg !== 'yes') { S.ui.confirm = 'clear'; return render(); }
@@ -1038,7 +1184,7 @@
     },
     invite: function () {
       var url = location.origin + location.pathname;
-      var text = 'I am trying Grove, a small journal for turning an idea into an offer you can test. Want to try it for a week?';
+      var text = 'I am trying Grove. It helps you make the thing you keep putting off, one small step at a time. Want to try it for a week?';
       /* The link goes inside the text: with a separate url, some apps show only a link preview and drop the sentence. */
       if (navigator.share) navigator.share({ text: text + '\n' + url }).catch(function () {});
       else copyText(text + ' ' + url, 'Invitation copied. Paste it into a message.');
@@ -1095,6 +1241,25 @@
       d.line = list[(i + 1) % list.length]; render();
     },
     tour: function () { S.ui.tourIdx = 0; go('tour'); },
+    drain: function (arg) { var d = D(); d.drain = d.drain === arg ? '' : arg; render(); },
+    reframeDone: function () { D().reframe = 'done'; render(); },
+    reframeSkip: function () { D().reframe = 'skipped'; render(); },
+    reframeOpen: function () { D().reframe = ''; render(); },
+    useExampleStep: function (arg) { var d = D(); d.step = arg; render(); var el = document.getElementById('step-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } },
+    setupAgain: function () { S.ui.setupIdx = 0; S.ui.idealStep = 0; go('setup'); },
+    setupStep: function (arg) { S.ui.setupIdx = Math.min(Math.max(Number(arg) || 0, 0), SETUP_STEPS - 1); render(); },
+    setWeeks: function (arg) { S.project.weeks = Number(arg); render(); },
+    setupDone: function () { S.ui.setupDone = true; S.ui.toured = true; S.ui.setupIdx = 0; go('today'); },
+    goalStarter: function (arg) {
+      var cur = (S.project.what || '').trim(), was = GOAL_STARTERS.filter(function (g) { return cur.indexOf(g.trim()) === 0; })[0];
+      S.project.what = was ? arg + cur.slice(was.trim().length).trim() : (cur ? arg + cur.charAt(0).toLowerCase() + cur.slice(1) : arg);
+      render(); var el = document.getElementById('goal-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    },
+    offerPath: function (arg) { S.project.offerPath = S.project.offerPath === arg ? '' : arg; render(); },
+    idealNext: function () { S.ui.idealStep = (S.ui.idealStep || 0) + 1; render(); },
+    idealBack: function () { S.ui.idealStep = Math.max(0, (S.ui.idealStep || 0) - 1); render(); },
+    idealRestart: function () { S.ui.idealStep = 0; render(); },
+    clearExample: function () { var theme = S.ui.theme; S = blank(); S.ui.theme = theme; S.ui.setupDone = true; S.ui.toured = true; S.ui.mapSeen = true; go('setup'); toast('Example cleared. This one is yours.'); },
     tourStep: function (arg) { S.ui.tourIdx = Math.min(Math.max((S.ui.tourIdx || 0) + Number(arg), 0), TOUR.length - 1); render(); },
     tourDone: function (arg) { S.ui.toured = true; S.ui.tourIdx = 0; go(arg === 'map' ? 'map' : 'today'); },
     startStep: function () {
@@ -1192,7 +1357,7 @@
       var wk = reviewWeek(); var w = W(wk); var next = addDays(wk, 7);
       var label = DECISIONS.filter(function (x) { return x[0] === r.decision; })[0][1];
       S.rings.push({ week: wk, savedOn: today(), decision: r.decision, decisionLabel: label, reason: (r.reason || '').trim(),
-        question: w.question, sign: w.sign, notes: notesIn(wk).map(function (n) { return { date: n.date, happened: n.happened, changes: n.changes, person: n.person, evidence: n.evidence }; }) });
+        question: w.question, sign: w.sign, notes: notesIn(wk).map(function (n) { return { date: n.date, happened: n.happened, changes: n.changes, person: n.person, evidence: n.evidence, rest: n.rest }; }) });
       var decision = r.decision; S.review = { decision: '', reason: '' };
       if (decision === 'pause') { S.paused = true; return go('today'); }
       var nw = W(next);

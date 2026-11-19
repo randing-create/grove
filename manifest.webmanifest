@@ -1,7 +1,7 @@
 {
   "name": "Grove",
   "short_name": "Grove",
-  "description": "Turn an idea you care about into an offer you can test.",
+  "description": "Make the thing you keep putting off. One small step at a time, one real reaction each week.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

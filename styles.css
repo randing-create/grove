@@ -297,3 +297,23 @@ nav.tabs button.on { color: var(--text); font-weight: 600; }
 .rest-idea { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); }
 .rest-idea:first-of-type { border-top: none; }
 .rest-idea strong { font-weight: 600; font-size: 16px; }
+
+/* ---------- setup (v0.7) ---------- */
+.setup .tour-text h1 { font-size: 32px; line-height: 1.15; }
+.goal-chips, .step-examples { gap: 6px; }
+.goal-chips button, .step-examples button { flex: 0 1 auto; min-height: 36px; padding: 0 12px; font-size: 14px; text-align: left; }
+.ideal-guide { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 10px 0; }
+.blob.ideal-blob { --s: 110px; }
+.ideal-text { font-size: 22px; line-height: 1.4; min-height: 7.5em; }
+.energy-guide { display: flex; flex-direction: column; gap: 4px; }
+.eg-row { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+.eg-row:first-child { border-top: none; }
+.blob.eg-dot { --s: 30px; flex: none; animation: none; margin-top: 3px; }
+::placeholder { color: var(--faint); opacity: 0.75; font-style: italic; }
+.reframe { gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 16px 18px; }
+.reframe .seg button { flex: 0 1 auto; min-height: 36px; padding: 0 12px; font-size: 14px; }
+.reframe-done { display: flex; flex-direction: column; gap: 4px; text-align: left; border: none; width: 100%; }
+.ideal-jot { width: 100%; font-size: 16px; text-align: left; }
+.ideal-text { min-height: 0; }
+.ideal-recap { gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 16px 18px; }
+.ideal-recap p { margin: 0; }
