@@ -27,11 +27,16 @@
     back: '<path d="M15 5l-7 7 7 7"/>',
     play: '<path d="M8 5.5v13l10.5-6.5z"/>',
     pause: '<path d="M9 5.5v13M15 5.5v13"/>',
+    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>'
   };
   /* Grounding pause: a short guided audio, played only when the person taps it. Replace pause.m4a with
      Ran's recording (same name, or change this line). The current file is a text-to-speech placeholder. */
-  var PAUSE_AUDIO = 'pause.m4a';
+  /* Guided audio recorded by Ran (2026-11-20). Grounding pause on the working page before you start; NSDR in Rest. */
+  var TRACKS = {
+    grounding: { src: 'grounding.m4a', title: 'Grounding pause', note: 'About two and a half minutes, before you start.' },
+    nsdr: { src: 'nsdr.m4a', title: 'NSDR · deep rest', note: 'About nine minutes. Lie down or lean back if you can.' }
+  };
   var RESULTS = [['done', 'Did it'], ['part', 'Did part of it'], ['stuck', 'Got stuck'], ['changed', 'Changed the plan'], ['not', 'Did not get to it']];
   var LOGO = '<svg class="logo" aria-hidden="true" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="24" cy="24" r="16.3"/><circle cx="24" cy="24" r="10.8"/><circle cx="24" cy="24" r="5.3"/></g><ellipse cx="35.3" cy="10.8" rx="8.2" ry="4.1" transform="rotate(-45 35.3 10.8)" fill="#D9E76C" stroke="currentColor" stroke-width="2.4"/></svg>';
   /* The feedback relay (relay/feedback-worker.js). When set, "Send to Ran" posts feedback straight into
@@ -132,7 +137,7 @@
       project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '', idealPlace: '', idealDoing: '', idealFeel: '', ideal1: '', ideal2: '', ideal3: '', ideal4: '', ideal5: '', ideal6: '', offerPath: '', weeks: 4 },
       weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
-      feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false },
+      feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false, shareCounts: true, first: '' },
       usage: { prompts: 0, offers: 0 },
       ui: { confirm: '', viewWeek: '', note: '', theme: 'light', promptKind: '', promptFrom: 'week', lineIdx: 0, toured: false, tourIdx: 0, mapSeen: false, setupDone: false, setupIdx: 0, idealStep: 0, isExample: false }
     };
@@ -162,7 +167,7 @@
         if (d && d.v === 2) {
           Object.keys(d).forEach(function (k) { base[k] = d[k]; });
           ['project', 'review', 'feedback', 'ui'].forEach(function (k) { base[k] = Object.assign({}, blank()[k], d[k] || {}); });
-          base.ui.confirm = ''; base.ui.pause = false; base.ui.editStep = false; base.ui.shrink = false; base.ui.custom = false; base.ui.outDate = '';
+          base.ui.confirm = ''; base.ui.pause = ''; base.ui.editStep = false; base.ui.shrink = false; base.ui.custom = false; base.ui.outDate = '';
           if (base.screen === 'checkout' || base.screen === 'tour' || base.screen === 'setup') base.screen = 'today';
         }
       } else {
@@ -238,7 +243,7 @@
   var CHIPS = { work: [5, 25, 45], rest: [5, 10, 15] };
   var REST_IDEAS = [
     ['Walk outside', 'A few minutes outdoors, without your phone if you can.'],
-    ['NSDR', 'Non-sleep deep rest: lie down, close your eyes, and slowly move your attention from head to toe.'],
+    ['NSDR', 'Non-sleep deep rest. Ran\'s guided version is just below.'],
     ['Stretch', 'Neck, shoulders and back, slowly.'],
     ['Drink water', 'A glass of water, away from your desk.'],
     ['Look far away', 'Out of a window, at something in the distance.']
@@ -300,7 +305,7 @@
   function restIdeas() {
     return '<div class="rest-ideas stack"><span class="label">Ideas for a good rest</span>' +
       REST_IDEAS.map(function (r) { return '<div class="rest-idea"><strong>' + r[0] + '</strong><span class="small muted">' + r[1] + '</span></div>'; }).join('') +
-      '<div class="rest-idea"><strong>Grounding pause</strong><span class="small muted">The guided audio below.</span></div></div>';
+      '</div>';
   }
   function setTimer(d, mode, mins, start) {
     d.timer = { mode: mode, mins: mins, end: start ? new Date(Date.now() + mins * 60000).toISOString() : '', left: mins * 60000 };
@@ -361,7 +366,7 @@
       return { text: 'Reach: someone it is for reacted ' + (n === 0 ? 'today' : (n === 1 ? 'yesterday' : n + ' days ago')) + '.', warn: false };
     }
     if (who) return { text: 'This week: a reaction from ' + who + '. Not yet.', warn: true };
-    return { text: 'This week: one reaction from someone it is for. Not yet.', warn: true };
+    return { text: 'This week: one reaction from someone it is for. Not yet. Tap to pick who.', warn: true };
   }
   function hasAnyData() {
     return has(S.project.what) || Object.keys(S.days).some(function (k) { return S.days[k].out || has(S.days[k].step) || S.days[k].energy; }) ||
@@ -433,27 +438,41 @@
   }
   function seenThisWeek() { var l = lastPerson(); return l && l >= monday(today()) ? 'Yes' : 'Not yet'; }
   function recordedText() {
-    var wk = monday(today());
-    var days = weekDays(wk).map(function (k) { return S.days[k]; }).filter(Boolean);
-    var out = days.filter(function (d) { return d.out; }).length;
-    var energy = days.filter(function (d) { return d.energy; }).length;
-    var steps = days.filter(function (d) { return d.out && !d.rest && has(d.step); }).length;
-    var seen = days.filter(function (d) { return d.out && d.person; }).length;
+    var wk = monday(today()), st = statsFor(wk), u = S.usage || {};
     var mapKeys = []; MAP.forEach(function (m) { mapKeys = mapKeys.concat(m.fields); });
     var mapDone = mapKeys.filter(function (k) { return has(fieldValue(k)); }).length;
-    var u = S.usage || {};
-    return ['This week: checked out ' + out + ' of 7 days, energy check on ' + energy + ', ' + steps + ' day' + (steps === 1 ? '' : 's') + ' with a step, seen by someone on ' + seen + '.',
-      'Weekly question written: ' + (has(W(wk).question) ? 'yes' : 'no') + '. Growth Rings saved: ' + S.rings.length + '.',
+    return ['This week: Show up ' + st.shown + ' of 7, Learn ' + st.learn + ' of 3, Reach ' + st.reach + '.',
+      'Setup done: ' + (S.ui.setupDone ? 'yes' : 'no') + '. Weeks planned: ' + (S.project.weeks || '-') + '. Weekly goal written: ' + (has(W(wk).question) ? 'yes' : 'no') + '. Growth Rings saved: ' + S.rings.length + '.',
       'Growth Map answers: ' + mapDone + ' of ' + mapKeys.length + '. Prompts copied: ' + (u.prompts || 0) + '. Offer cards shared: ' + (u.offers || 0) + '.', 'Grove version: ' + APP_VERSION + '.'].join('\n');
   }
   function sharedNotes() {
     if (!S.feedback.include) return '';
     var w = W(monday(today()));
-    var out = ['This week\'s question: ' + (has(w.question) ? w.question.trim() : '(not written)')];
+    var out = ['This week\'s goal: ' + (has(w.question) ? w.question.trim() : '(not written)')];
     notesIn(monday(today())).forEach(function (n) {
       if (has(n.happened) || has(n.changes)) out.push(shortDay(n.date) + ': ' + (n.happened || '').trim() + (has(n.changes) ? ' → ' + n.changes.trim() : ''));
     });
     return out.join('\n');
+  }
+  /* Anonymous counts (agreed by Ran, 2026-11-19): the week's ring numbers and a random device id, no names and no
+     text, sent through the feedback relay. Once a day when Grove opens, and after each check-out. Off switch in
+     setup and in This Week. When a new week starts, last week's final numbers go first. */
+  function countsPayload(wk) {
+    var st = statsFor(wk);
+    return { type: 'counts', device: S.ui.deviceId, week: wk, show: st.shown, learn: st.learn, reach: st.reach,
+      setup: !!S.ui.setupDone, weeks: S.project.weeks || 0, version: APP_VERSION };
+  }
+  function sendCounts(force) {
+    if (!FEEDBACK_ENDPOINT || S.feedback.shareCounts === false || (navigator.onLine === false)) return;
+    if (!S.ui.setupDone && !hasAnyData()) return;
+    var t = today(); if (!force && S.ui.countsDay === t) return;
+    if (!S.ui.deviceId) S.ui.deviceId = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+    var wk = monday(t), weeks = [wk];
+    if (S.ui.countsDay && S.ui.countsDay < wk) weeks.unshift(monday(S.ui.countsDay));
+    Promise.all(weeks.map(function (w) {
+      return fetch(FEEDBACK_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(countsPayload(w)) })
+        .then(function (r) { if (!r.ok) throw new Error('relay ' + r.status); });
+    })).then(function () { S.ui.countsDay = t; save(); }).catch(function () { /* try again next time */ });
   }
   function feedbackPayload() {
     var f = S.feedback;
@@ -465,7 +484,7 @@
     var v = function (s) { return has(s) ? s : '(left empty)'; };
     var out = ['Grove feedback · ' + nice(today()) + (p.name ? ' · ' + p.name : ''), '',
       'Would open Grove again next week: ' + v(p.again), 'What I tried: ' + v(p.tried), 'Where I stopped or got stuck: ' + v(p.stuck), 'What I would change: ' + v(p.change),
-      'Someone else saw my work this week: ' + p.seen, '', 'Recorded by Grove:', p.recorded];
+      'Someone it is for reacted this week: ' + p.seen, '', 'Recorded by Grove:', p.recorded];
     if (p.contact) out.push('', 'Reach me: ' + p.contact);
     if (p.notes) out.push('', p.notes);
     return out.join('\n');
@@ -585,14 +604,14 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7';
+  var APP_VERSION = 'v0.7.1';
   var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button></p>';
 
   /* The tour: the five things worth knowing first. */
   var TOUR = [
     { art: function () { return '<span class="blob lv3 tour-blob" aria-hidden="true"></span>'; },
       title: 'One small step a day',
-      body: 'Tell Grove how much energy you have, and size one step to fit. On a low day, ten minutes counts.' },
+      body: 'Tell Grove how much energy you have, and size one step to fit. On a low day, five minutes counts.' },
     { art: function () { return weekRing({ shown: 5, target: 7, learn: 2, learnTarget: 3, reach: 1 }, 132); },
       title: 'Ideas die three ways: you stop, you polish, you hide',
       body: 'Three rings guard against them. Show up: check in every day, to work or to rest. Learn: check out and write what happened. Reach, in the middle: one reaction from someone it is for.' },
@@ -604,7 +623,7 @@
       body: 'Five steps from idea to offer: Seed, Root, Sprout, Bloom, Pollinate. What you write there fills in your AI prompts and your offer card. It is optional.' },
     { art: function () { return '<span class="donemark tour-lock">' + svg('lock', 40) + '</span>'; },
       title: 'Your notes stay with you',
-      body: 'What you write stays in this browser. Nothing leaves it unless you tap Send feedback, and you see exactly what goes first.' }
+      body: 'What you write stays on this phone. Grove sends Ran anonymous weekly counts (no names, no notes), and you can switch that off. Speak uses your phone\'s speech service to turn your voice into text.' }
   ];
 
   /* ---------- screens ---------- */
@@ -645,10 +664,11 @@
           '<textarea id="step-input" class="plain" rows="3" data-bind="day.step">' + esc(d.step) + '</textarea></div>' +
           '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="editStep">Done</button></div>'
         : '<div class="stack working-step"><span class="label">Today\'s step</span><p class="serif step-now">' + esc(d.step) + '</p></div>';
-      body = stepBlock + lineCard() +
+      var isRest = timerOf(d).mode === 'rest';
+      body = stepBlock + lineCard() + (isRest ? '' : pausePanel('grounding')) +
         '<div class="working-orb">' + timerBlob(d) + '</div>' +
         '<div id="work-time" class="working-time">' + timerBlock(d) + '</div>' +
-        (timerOf(d).mode === 'rest' ? restIdeas() : '') + pausePanel() +
+        (isRest ? pausePanel('nsdr') + restIdeas() : '') +
         field('Notice something? Jot it down', 'day.happened', d.happened, 'It will be waiting in your check-out.', 2) +
         '<div style="flex:1"></div>' +
         '<button class="btn" data-act="wrapUp">Wrap up for today</button>' +
@@ -664,6 +684,9 @@
       var tomorrow = planFor(addDays(today(), 1)).step;
       body = '<div class="grow center"><span class="donemark">' + svg('check', 44) + '</span>' +
         '<h1 class="big">' + (d.rest ? 'Rest counts too.' : 'You showed up today.') + '</h1>' +
+        (!d.rest && !S.ui.firstAsked && FEEDBACK_ENDPOINT ? '<div class="notice stack first-q" style="text-align:left;align-self:stretch"><span class="label">One question from Ran</span>' +
+          field('What almost stopped you today?', 'feedback.first', S.feedback.first, 'A few words is plenty.', 2) +
+          '<div class="row" style="gap:14px"><button class="btn small-btn" data-act="sendFirst">Send to Ran</button><button class="link" data-act="skipFirst">Skip</button></div></div>' : '') +
         (has(d.step) && !d.rest ? '<p><span class="struck">' + esc(d.step) + '</span></p>' : '') +
         (resultLabel(d.result) ? '<span class="pill">' + esc(resultLabel(d.result)) + '</span>' : '') +
         (has(d.happened) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What happened</span><p>' + esc(d.happened) + '</p></div>' : '') +
@@ -724,18 +747,21 @@
 
   function resultLabel(key) { var r = RESULTS.filter(function (x) { return x[0] === key; })[0]; return r ? r[1] : ''; }
 
-  /* The guided pause. The audio object lives outside the screen, so redrawing never cuts it off. */
-  var pauseAudio = null;
-  function getAudio() {
-    if (pauseAudio) return pauseAudio;
-    pauseAudio = new Audio(PAUSE_AUDIO);
+  /* Guided audio players. The audio object lives outside the screen, so redrawing never cuts it off.
+     S.ui.pause holds the open track key ('grounding' or 'nsdr'), or '' when closed. */
+  var pauseAudio = null, pauseKey = '';
+  function getAudio(key) {
+    if (pauseAudio && pauseKey === key) return pauseAudio;
+    if (pauseAudio) { pauseAudio.pause(); }
+    pauseKey = key;
+    pauseAudio = new Audio(TRACKS[key].src);
     pauseAudio.preload = 'metadata';
     pauseAudio.addEventListener('timeupdate', updatePause);
     pauseAudio.addEventListener('loadedmetadata', updatePause);
     pauseAudio.addEventListener('play', updatePause);
     pauseAudio.addEventListener('pause', updatePause);
-    pauseAudio.addEventListener('ended', function () { pauseAudio.currentTime = 0; S.ui.pauseEnded = true; if (S.ui.pause) render(); });
-    pauseAudio.addEventListener('error', function () { S.ui.pause = false; if (S.screen === 'today') render(); toast('The pause audio could not load. You can start without it.'); });
+    pauseAudio.addEventListener('ended', function () { this.currentTime = 0; S.ui.pauseEnded = true; if (S.ui.pause) render(); });
+    pauseAudio.addEventListener('error', function () { S.ui.pause = ''; if (S.screen === 'today') render(); toast('The audio could not load. You can go on without it.'); });
     return pauseAudio;
   }
   function mmss(s) { s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
@@ -747,18 +773,27 @@
     if (b) { b.innerHTML = svg(a.paused ? 'play' : 'pause', 26); b.setAttribute('aria-label', a.paused ? 'Play' : 'Pause'); }
     var blob = document.getElementById('pause-blob'); if (blob) blob.classList.toggle('breathing', !a.paused);
   }
-  function stopPause() { if (pauseAudio) { pauseAudio.pause(); pauseAudio.currentTime = 0; } S.ui.pause = false; S.ui.pauseEnded = false; }
-  function pausePanel() {
-    if (!S.ui.pause) {
-      return '<button class="btn ghost pause-open" data-act="pauseOpen">' + svg('play', 20) + '<span>Grounding pause <span class="muted">· optional</span></span></button>';
+  function stopPause() { if (pauseAudio) { pauseAudio.pause(); pauseAudio.currentTime = 0; } S.ui.pause = ''; S.ui.pauseEnded = false; }
+  function pausePanel(key) {
+    var T = TRACKS[key]; if (!T) return '';
+    if (S.ui.pause !== key) {
+      return '<button class="btn ghost pause-open" data-act="pauseOpen" data-arg="' + key + '">' + svg('play', 20) + '<span>' + T.title + ' <span class="muted">· optional</span></span></button>';
     }
-    var a = pauseAudio, playing = a && !a.paused;
-    return '<div class="pause-card stack" role="region" aria-label="Grounding pause">' +
-      '<div class="pause-head"><span class="label">Grounding pause</span><button class="link" data-act="pauseClose">Close</button></div>' +
+    var a = pauseKey === key ? pauseAudio : null, playing = a && !a.paused;
+    /* Before you start: show what the person wrote about what makes starting easy, and today's step. */
+    var extra = '';
+    if (key === 'grounding') {
+      var easy = (S.project.ideal2 || '').trim(), step = (D().step || '').trim();
+      extra = (easy ? '<div class="stack" style="gap:2px"><span class="label">What makes starting easy for you</span><span class="small">' + esc(easy) + '</span></div>' : '') +
+        (step ? '<div class="stack" style="gap:2px"><span class="label">Today\'s step</span><span class="small">' + esc(step) + '</span></div>' : '');
+    }
+    return '<div class="pause-card stack" role="region" aria-label="' + T.title + '">' +
+      '<div class="pause-head"><span class="label">' + T.title + '</span><button class="link" data-act="pauseClose">Close</button></div>' +
       '<div class="pause-row"><button id="pause-play" class="pause-play" data-act="pauseToggle" aria-label="' + (playing ? 'Pause' : 'Play') + '">' + svg(playing ? 'pause' : 'play', 26) + '</button>' +
       '<span id="pause-blob" class="blob lv3 pause-blob' + (playing ? ' breathing' : '') + '" aria-hidden="true"></span>' +
       '<span class="stack" style="gap:6px;flex:1"><span class="pause-track"><span id="pause-bar"></span></span><span id="pause-time" class="small muted">0:00</span></span></div>' +
-      '<p class="small muted">' + (S.ui.pauseEnded ? 'That is the pause. Start whenever you like.' : 'Stop whenever you want. Your step is waiting below.') + '</p></div>';
+      extra +
+      '<p class="small muted">' + (S.ui.pauseEnded ? (key === 'grounding' ? 'That is the pause. Make that first move now.' : 'Rest done. Your step will still be there.') : T.note + ' Stop whenever you want.') + '</p></div>';
   }
 
   /* Setup (v0.7): what Grove is, your goal, your ideal day, why energy matters. Every step can be skipped. */
@@ -779,6 +814,18 @@
     ['High', 'bright, brave', 'the bold one: show it, ask, invite']
   ];
   var SETUP_STEPS = 5;
+  /* Speak instead of typing. Uses the browser's own speech recognition (Apple or Google turns the voice into
+     text). Grove keeps no audio. Where the browser has none, the button is hidden and the keyboard mic still works. */
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  var listening = null;
+  function micButton(bind, targetId) {
+    if (!SpeechRec) return '';
+    var on = listening && listening.bind === bind;
+    return '<button class="mic-btn' + (on ? ' on' : '') + '" data-act="mic" data-arg="' + bind + '|' + targetId + '" aria-pressed="' + !!on + '">' +
+      svg('mic', 22) + '<span>' + (on ? 'Listening… tap to stop' : 'Speak') + '</span></button>';
+  }
+  function stopListening() { if (listening) { try { listening.rec.stop(); } catch (e) { /* ignore */ } } }
+  function autosize(el) { if (el && el.tagName === 'TEXTAREA') { el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; } }
   function idealLines() {
     var jots = [1, 2, 3, 4, 5, 6].map(function (n) { return S.project['ideal' + n]; }).filter(has);
     return jots.length ? jots : [S.project.idealPlace, S.project.idealDoing, S.project.idealFeel].filter(has);
@@ -819,7 +866,8 @@
       var guide = k < IDEAL_PROMPTS.length
         ? '<div class="ideal-guide"><span class="blob lv3 breathe-slow ideal-blob" aria-hidden="true"></span>' +
           '<p class="serif ideal-text">' + esc(IDEAL_PROMPTS[k]) + '</p>' +
-          '<textarea class="ideal-jot" rows="2" data-bind="project.ideal' + (k + 1) + '" placeholder="A few words. You can also tap the microphone on your keyboard.">' + esc(S.project['ideal' + (k + 1)] || '') + '</textarea>' +
+          '<textarea id="jot-ideal' + (k + 1) + '" class="ideal-jot" rows="2" data-bind="project.ideal' + (k + 1) + '" placeholder="' + (SpeechRec ? 'Tap Speak and say it, or type a few words.' : 'A few words. You can also tap the microphone on your keyboard.') + '">' + esc(S.project['ideal' + (k + 1)] || '') + '</textarea>' +
+          micButton('project.ideal' + (k + 1), 'jot-ideal' + (k + 1)) +
           '<span class="small muted">' + (k + 1) + ' of ' + IDEAL_PROMPTS.length + '</span>' +
           '<div class="row" style="justify-content:center;gap:16px">' + (k > 0 ? '<button class="link" data-act="idealBack">Back</button>' : '') +
           '<button class="btn ghost small-btn" data-act="idealNext">' + (k === IDEAL_PROMPTS.length - 1 ? 'Finish' : 'Continue') + '</button></div></div>'
@@ -827,7 +875,8 @@
           '<button class="link" style="align-self:flex-start" data-act="idealRestart">Walk through it again</button></div>';
       body = '<div class="stack tour-text"><h1>Your ideal working day</h1>' +
         '<p class="muted">Imagine' + (goal ? ' "' + esc(goal) + '"' : ' it') + ' going well. Jot a few words as you go.</p></div>' +
-        guide + '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>';
+        guide + (SpeechRec ? '<p class="small muted">Speak uses your phone\'s speech service (Apple or Google) to turn your voice into text. Grove keeps no audio.</p>' : '') +
+        '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>';
       next = '<button class="btn" data-act="setupStep" data-arg="4">Next</button>';
     } else {
       var wk = monday(today()), w = W(wk), weeks = S.project.weeks || 4;
@@ -835,7 +884,8 @@
       body = '<div class="stack tour-text"><h1>Plan the first week</h1>' +
         '<p class="muted">A short horizon keeps it real. You can change both later in This Week.</p></div>' +
         '<div class="stack" style="gap:10px"><span class="label">How long will you give it?</span><div class="seg">' + wchips + '</div></div>' +
-        field('This week\'s goal', 'week.question', w.question, 'e.g. Draft the outline and get one reaction to it', 2);
+        field('This week\'s goal', 'week.question', w.question, 'e.g. Draft the outline and get one reaction to it', 2) +
+        check('Share anonymous weekly counts, so Ran can see if Grove works (no names, no notes)', 'feedback.shareCounts', S.feedback.shareCounts !== false);
       next = '<button class="btn" data-act="setupDone">Start today</button>';
     }
     var dots = []; for (var k2 = 0; k2 < SETUP_STEPS; k2++) dots.push('<span class="tdot' + (k2 === i ? ' on' : '') + '"></span>');
@@ -961,6 +1011,7 @@
       field('This week\'s goal', 'week.question', w.question, 'What do you want to have done or found out by Sunday?', 2) +
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
       field('Who could react to it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
+      '<p class="small muted" style="margin-top:-12px">Not sure who? Someone you already know who has this problem is enough. <button class="link" style="padding:0;min-height:0;font-size:inherit" data-act="copyAsk">Copy a message to send them</button></p>' +
       (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' : '') +
       '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
       (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
@@ -985,6 +1036,7 @@
       '<button class="' + (dark ? 'on' : '') + '" aria-pressed="' + dark + '" data-act="theme" data-arg="dark">Dark</button></div></div>' +
       '<div class="section"><span class="brand">Your data</span>' +
       '<p class="small muted">Saved in this browser only. Export to move it to another device, then import it there.</p>' +
+      check('Share anonymous weekly counts with Ran (no names, no notes)', 'feedback.shareCounts', S.feedback.shareCounts !== false) +
       confirmBox('example', 'This replaces what you have written so far. Load the example anyway?') +
       confirmBox('clear', 'This deletes everything saved in this browser. It cannot be undone.') +
       confirmBox('importData', 'Importing replaces what is saved in this browser. Continue?') +
@@ -1027,7 +1079,7 @@
       field('What would you change?', 'feedback.change', f.change, '', 2) +
       field('Your name or nickname', 'feedback.name', f.name, 'Remembered for next time', 1) +
       field('How can Ran reach you? (optional)', 'feedback.contact', f.contact, 'Remembered for next time', 1) +
-      check('Also share this week\'s question and my check-out notes', 'feedback.include', f.include) +
+      check('Also share this week\'s goal and my check-out notes', 'feedback.include', f.include) +
       '<details><summary class="small">What will be sent</summary><pre id="feedback-preview">' + esc(feedbackText()) + '</pre></details>' +
       '<p class="small muted">' + where + '</p>' +
       '<div style="flex:1"></div>' +
@@ -1068,7 +1120,7 @@
     return '<section class="screen pad-bottom">' +
       '<header class="top">' + backBtn('week') + '<span class="small muted">Review · ' + esc(range(wk)) + '</span></header>' +
       '<h1>What did the week show you?</h1>' +
-      '<div class="two"><div><span class="label">The question</span><span' + (has(w.question) ? '' : ' class="empty"') + '>' + (has(w.question) ? esc(w.question) : 'Not set') + '</span>' +
+      '<div class="two"><div><span class="label">This week\'s goal</span><span' + (has(w.question) ? '' : ' class="empty"') + '>' + (has(w.question) ? esc(w.question) : 'Not set') + '</span>' +
       (has(w.sign) ? '<span class="small muted">Sign: ' + esc(w.sign) + '</span>' : '') + '</div>' +
       '<div><span class="label">What happened</span>' + (withNote.length ? withNote.map(function (n) {
         return '<span><span class="small muted">' + esc(shortDay(n.date)) + (n.person ? ' · reach' : '') + '</span><br>' + esc(n.happened) + (has(n.changes) ? '<br><span class="small muted">Next time: ' + esc(n.changes) + '</span>' : '') + '</span>';
@@ -1139,10 +1191,12 @@
       after: 'Every week one real person sees or tries her work, and she knows what to build or sell next.',
       offer: 'Two weeks with Grove: a few minutes a day, one small step sized to your energy, and a short review at the end of each week.',
       place: 'The WoMen AI Lab group, to builders who have something they can test this week.',
-      invite: 'Open the link, write this week\'s question, and tell me after seven days what you would skip.',
-      contact: 'randing-create.github.io/grove' };
+      invite: 'Open the link, set this week\'s goal, and tell me after seven days what you would skip.',
+      contact: 'randing-create.github.io/grove', weeks: 4, offerPath: 'yes',
+      ideal1: 'Birds outside, rested, a little excited to open it', ideal2: 'At my desk at nine, coffee, phone in the other room',
+      ideal3: 'Recording a short demo, shoulders loose', ideal4: 'Sent it to two builders, proud of something small' };
     S.weeks[wk] = {
-      question: 'Does planning one small step a day change what I actually do next?',
+      question: 'Get one WAL builder to try Grove and tell me what they would skip',
       sign: 'A note, in my own words, of a day when the step I took was not the one I had planned.',
       who: 'One WAL builder who has something she can test this week.',
       plan: {}
@@ -1211,6 +1265,21 @@
           toast('Could not send right now. Nothing is lost. Try again, or copy it instead.');
         });
     },
+    sendFirst: function (arg, el) {
+      var text = (S.feedback.first || '').trim();
+      if (!text) return toast('Write a few words first, or skip.');
+      if (el) { el.disabled = true; el.textContent = 'Sending…'; }
+      fetch(FEEDBACK_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        name: (S.feedback.name || '').trim(), tried: 'First check-out question: what almost stopped you today?', stuck: text,
+        seen: seenThisWeek(), recorded: recordedText() }) })
+        .then(function (r) { if (!r.ok) throw new Error('relay'); S.ui.firstAsked = true; S.feedback.first = ''; render(); toast('Sent to Ran. Thank you.'); })
+        .catch(function () { if (el) { el.disabled = false; el.textContent = 'Send to Ran'; } toast('Could not send right now. Try again later.'); });
+    },
+    skipFirst: function () { S.ui.firstAsked = true; render(); },
+    copyAsk: function () {
+      var g = (S.project.what || '').trim();
+      copyText('Hi! I\'m working on ' + (g ? g.charAt(0).toLowerCase() + g.slice(1) : 'a small project') + '. Could I show you a rough version and ask you one question? 10 minutes is plenty.', 'Copied. Paste it into a message.');
+    },
     copyFeedback: function () { copyText(feedbackText(), 'Copied. Paste it into a message to Ran.'); },
     setEnergy: function () {
       var el = document.getElementById('energy-range'); var d = D();
@@ -1256,6 +1325,29 @@
       render(); var el = document.getElementById('goal-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     },
     offerPath: function (arg) { S.project.offerPath = S.project.offerPath === arg ? '' : arg; render(); },
+    mic: function (arg, el) {
+      var parts = arg.split('|'), bind = parts[0], targetId = parts[1];
+      if (listening) { var same = listening.bind === bind; stopListening(); if (same) return; }
+      var rec = new SpeechRec(), field = document.getElementById(targetId);
+      var base = field ? field.value.trim() : '', finals = '';
+      rec.lang = navigator.language || 'en-US'; rec.interimResults = true; rec.continuous = true;
+      listening = { rec: rec, bind: bind };
+      var paint = function (text) {
+        var v = (base ? base + ' ' : '') + text;
+        setBind(bind, v); var f = document.getElementById(targetId); if (f) { f.value = v; autosize(f); }
+      };
+      rec.onresult = function (ev) {
+        var interim = '';
+        for (var i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) finals += ev.results[i][0].transcript; else interim += ev.results[i][0].transcript;
+        }
+        paint((finals + interim).trim());
+      };
+      rec.onend = function () { if (listening && listening.rec === rec) listening = null; save(); var b = document.querySelector('.mic-btn.on'); if (b) { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.querySelector('span').textContent = 'Speak'; } };
+      rec.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') toast('Speech is not allowed here. Use the microphone on your keyboard instead.'); };
+      try { rec.start(); } catch (e) { listening = null; return toast('Speech did not start. Use the microphone on your keyboard instead.'); }
+      if (el) { el.classList.add('on'); el.setAttribute('aria-pressed', 'true'); el.querySelector('span').textContent = 'Listening… tap to stop'; }
+    },
     idealNext: function () { S.ui.idealStep = (S.ui.idealStep || 0) + 1; render(); },
     idealBack: function () { S.ui.idealStep = Math.max(0, (S.ui.idealStep || 0) - 1); render(); },
     idealRestart: function () { S.ui.idealStep = 0; render(); },
@@ -1272,7 +1364,7 @@
     timerPause: function () { var t = timerOf(D()); t.left = Math.max(0, leftMs(t)); t.end = ''; render(); },
     timerReset: function () { var t = timerOf(D()); t.left = t.mins * 60000; t.end = ''; S.ui.timerDone = false; render(); },
     setBox: function (arg) { var d = D(); setTimer(d, timerOf(d).mode, Number(arg)); },
-    setMode: function (arg) { var d = D(), m = arg === 'rest' ? 'rest' : 'work'; if (timerOf(d).mode === m) return; setTimer(d, m, defaultMins(d, m)); },
+    setMode: function (arg) { var d = D(), m = arg === 'rest' ? 'rest' : 'work'; if (timerOf(d).mode === m) return; stopPause(); setTimer(d, m, defaultMins(d, m)); },
     startRest: function () { var d = D(); setTimer(d, 'rest', defaultMins(d, 'rest'), true); },
     startWork: function () { var d = D(); setTimer(d, 'work', defaultMins(d, 'work'), true); },
     moreTime: function () { var d = D(); d.timer = { mode: 'work', mins: 10, end: new Date(Date.now() + 600000).toISOString(), left: 600000 }; S.ui.timerDone = false; render(); },
@@ -1297,12 +1389,13 @@
       go('checkout');
     },
     result: function (arg) { var d = outRec(); d.result = d.result === arg ? '' : arg; render(); },
-    pauseOpen: function () {
-      S.ui.pause = true; S.ui.pauseEnded = false; render();
-      var a = getAudio(); var p = a.play(); if (p && p.catch) p.catch(function () { updatePause(); });
+    pauseOpen: function (arg) {
+      var key = TRACKS[arg] ? arg : 'grounding';
+      S.ui.pause = key; S.ui.pauseEnded = false; render();
+      var a = getAudio(key); var p = a.play(); if (p && p.catch) p.catch(function () { updatePause(); });
     },
     pauseToggle: function () {
-      var a = getAudio(); S.ui.pauseEnded = false;
+      var a = getAudio(S.ui.pause || 'grounding'); S.ui.pauseEnded = false;
       if (a.paused) { var p = a.play(); if (p && p.catch) p.catch(function () {}); } else a.pause();
     },
     pauseClose: function () { stopPause(); render(); },
@@ -1346,7 +1439,7 @@
       var pastDate = S.ui.outDate && S.days[S.ui.outDate] ? S.ui.outDate : '';
       var d = outRec();
       if (d.result === 'changed') d.step = (d.step || '').trim();
-      reveal(el, function () { d.out = true; d.rest = false; go('today'); if (pastDate) toast('Saved ' + nice(pastDate) + '.'); });
+      reveal(el, function () { d.out = true; d.rest = false; go('today'); if (pastDate) toast('Saved ' + nice(pastDate) + '.'); sendCounts(true); });
     },
     showWeek: function (arg) { S.ui.viewWeek = arg === monday(today()) ? '' : arg; S.ui.note = ''; render(); },
     toggleRest: function (arg) { var p = planFor(arg); p.rest = !p.rest; render(); },
@@ -1406,6 +1499,7 @@
       var word = document.getElementById('energy-word'); if (word) word.textContent = LEVELS[n - 1];
       return;
     }
+    autosize(e.target);
     var b = e.target.dataset && e.target.dataset.bind;
     if (!b) return;
     setBind(b, e.target.value); save(); refreshPreviews();
@@ -1441,12 +1535,15 @@
   function render() {
     applyTheme();
     var fn = screens[S.screen] || screens.today;
+    stopListening();
     app.innerHTML = fn();
+    Array.prototype.forEach.call(app.querySelectorAll('textarea'), autosize);
     save();
     window.scrollTo(0, 0);
   }
 
   render();
+  setTimeout(function () { sendCounts(false); }, 3000);
   /* Every second while working: update the countdown, how full the shape is, and the tab title.
      At zero, redraw the timer once to offer the next move, and buzz gently where phones allow it. */
   setInterval(function () {
