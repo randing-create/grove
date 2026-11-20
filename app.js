@@ -27,7 +27,6 @@
     back: '<path d="M15 5l-7 7 7 7"/>',
     play: '<path d="M8 5.5v13l10.5-6.5z"/>',
     pause: '<path d="M9 5.5v13M15 5.5v13"/>',
-    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>'
   };
   /* Grounding pause: a short guided audio, played only when the person taps it. Replace pause.m4a with
@@ -604,7 +603,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.1';
+  var APP_VERSION = 'v0.7.2';
   var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button></p>';
 
   /* The tour: the five things worth knowing first. */
@@ -623,7 +622,7 @@
       body: 'Five steps from idea to offer: Seed, Root, Sprout, Bloom, Pollinate. What you write there fills in your AI prompts and your offer card. It is optional.' },
     { art: function () { return '<span class="donemark tour-lock">' + svg('lock', 40) + '</span>'; },
       title: 'Your notes stay with you',
-      body: 'What you write stays on this phone. Grove sends Ran anonymous weekly counts (no names, no notes), and you can switch that off. Speak uses your phone\'s speech service to turn your voice into text.' }
+      body: 'What you write stays on this phone. Grove sends Ran anonymous weekly counts (no names, no notes), and you can switch that off.' }
   ];
 
   /* ---------- screens ---------- */
@@ -814,17 +813,7 @@
     ['High', 'bright, brave', 'the bold one: show it, ask, invite']
   ];
   var SETUP_STEPS = 5;
-  /* Speak instead of typing. Uses the browser's own speech recognition (Apple or Google turns the voice into
-     text). Grove keeps no audio. Where the browser has none, the button is hidden and the keyboard mic still works. */
-  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  var listening = null;
-  function micButton(bind, targetId) {
-    if (!SpeechRec) return '';
-    var on = listening && listening.bind === bind;
-    return '<button class="mic-btn' + (on ? ' on' : '') + '" data-act="mic" data-arg="' + bind + '|' + targetId + '" aria-pressed="' + !!on + '">' +
-      svg('mic', 22) + '<span>' + (on ? 'Listening… tap to stop' : 'Speak') + '</span></button>';
-  }
-  function stopListening() { if (listening) { try { listening.rec.stop(); } catch (e) { /* ignore */ } } }
+  /* Text boxes grow with what is written, so the whole entry stays visible. */
   function autosize(el) { if (el && el.tagName === 'TEXTAREA') { el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; } }
   function idealLines() {
     var jots = [1, 2, 3, 4, 5, 6].map(function (n) { return S.project['ideal' + n]; }).filter(has);
@@ -866,8 +855,7 @@
       var guide = k < IDEAL_PROMPTS.length
         ? '<div class="ideal-guide"><span class="blob lv3 breathe-slow ideal-blob" aria-hidden="true"></span>' +
           '<p class="serif ideal-text">' + esc(IDEAL_PROMPTS[k]) + '</p>' +
-          '<textarea id="jot-ideal' + (k + 1) + '" class="ideal-jot" rows="2" data-bind="project.ideal' + (k + 1) + '" placeholder="' + (SpeechRec ? 'Tap Speak and say it, or type a few words.' : 'A few words. You can also tap the microphone on your keyboard.') + '">' + esc(S.project['ideal' + (k + 1)] || '') + '</textarea>' +
-          micButton('project.ideal' + (k + 1), 'jot-ideal' + (k + 1)) +
+          '<textarea id="jot-ideal' + (k + 1) + '" class="ideal-jot" rows="2" data-bind="project.ideal' + (k + 1) + '" placeholder="A few words, or tap the microphone on your keyboard and just speak.">' + esc(S.project['ideal' + (k + 1)] || '') + '</textarea>' +
           '<span class="small muted">' + (k + 1) + ' of ' + IDEAL_PROMPTS.length + '</span>' +
           '<div class="row" style="justify-content:center;gap:16px">' + (k > 0 ? '<button class="link" data-act="idealBack">Back</button>' : '') +
           '<button class="btn ghost small-btn" data-act="idealNext">' + (k === IDEAL_PROMPTS.length - 1 ? 'Finish' : 'Continue') + '</button></div></div>'
@@ -875,7 +863,7 @@
           '<button class="link" style="align-self:flex-start" data-act="idealRestart">Walk through it again</button></div>';
       body = '<div class="stack tour-text"><h1>Your ideal working day</h1>' +
         '<p class="muted">Imagine' + (goal ? ' "' + esc(goal) + '"' : ' it') + ' going well. Jot a few words as you go.</p></div>' +
-        guide + (SpeechRec ? '<p class="small muted">Speak uses your phone\'s speech service (Apple or Google) to turn your voice into text. Grove keeps no audio.</p>' : '') +
+        guide +
         '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>';
       next = '<button class="btn" data-act="setupStep" data-arg="4">Next</button>';
     } else {
@@ -1325,29 +1313,6 @@
       render(); var el = document.getElementById('goal-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     },
     offerPath: function (arg) { S.project.offerPath = S.project.offerPath === arg ? '' : arg; render(); },
-    mic: function (arg, el) {
-      var parts = arg.split('|'), bind = parts[0], targetId = parts[1];
-      if (listening) { var same = listening.bind === bind; stopListening(); if (same) return; }
-      var rec = new SpeechRec(), field = document.getElementById(targetId);
-      var base = field ? field.value.trim() : '', finals = '';
-      rec.lang = navigator.language || 'en-US'; rec.interimResults = true; rec.continuous = true;
-      listening = { rec: rec, bind: bind };
-      var paint = function (text) {
-        var v = (base ? base + ' ' : '') + text;
-        setBind(bind, v); var f = document.getElementById(targetId); if (f) { f.value = v; autosize(f); }
-      };
-      rec.onresult = function (ev) {
-        var interim = '';
-        for (var i = ev.resultIndex; i < ev.results.length; i++) {
-          if (ev.results[i].isFinal) finals += ev.results[i][0].transcript; else interim += ev.results[i][0].transcript;
-        }
-        paint((finals + interim).trim());
-      };
-      rec.onend = function () { if (listening && listening.rec === rec) listening = null; save(); var b = document.querySelector('.mic-btn.on'); if (b) { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.querySelector('span').textContent = 'Speak'; } };
-      rec.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') toast('Speech is not allowed here. Use the microphone on your keyboard instead.'); };
-      try { rec.start(); } catch (e) { listening = null; return toast('Speech did not start. Use the microphone on your keyboard instead.'); }
-      if (el) { el.classList.add('on'); el.setAttribute('aria-pressed', 'true'); el.querySelector('span').textContent = 'Listening… tap to stop'; }
-    },
     idealNext: function () { S.ui.idealStep = (S.ui.idealStep || 0) + 1; render(); },
     idealBack: function () { S.ui.idealStep = Math.max(0, (S.ui.idealStep || 0) - 1); render(); },
     idealRestart: function () { S.ui.idealStep = 0; render(); },
@@ -1535,7 +1500,6 @@
   function render() {
     applyTheme();
     var fn = screens[S.screen] || screens.today;
-    stopListening();
     app.innerHTML = fn();
     Array.prototype.forEach.call(app.querySelectorAll('textarea'), autosize);
     save();
