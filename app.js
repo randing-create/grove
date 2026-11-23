@@ -133,7 +133,7 @@
   function blank() {
     return {
       v: 2, screen: 'today',
-      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '', idealPlace: '', idealDoing: '', idealFeel: '', ideal1: '', ideal2: '', ideal3: '', ideal4: '', ideal5: '', ideal6: '', offerPath: '', fit: '', periodGoal: '', weeks: 4 },
+      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '', idealPlace: '', idealDoing: '', idealFeel: '', ideal1: '', ideal2: '', ideal3: '', ideal4: '', ideal5: '', ideal6: '', offerPath: '', fit: '', periodGoal: '', soThat: '', weeks: 4 },
       weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
       feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false, shareCounts: true, first: '' },
@@ -157,6 +157,8 @@
     return s;
   }
 
+  /* The four one-tap "so that" options from v0.7.4, kept only to move old answers (see load). */
+  var OLD_SO_THAT = ['I earn from what I know', 'I prove to myself I can', 'it helps people like me', 'just for the joy of it'];
   function load() {
     var base = blank();
     try {
@@ -168,6 +170,8 @@
           ['project', 'review', 'feedback', 'ui'].forEach(function (k) { base[k] = Object.assign({}, blank()[k], d[k] || {}); });
           base.ui.confirm = ''; base.ui.pause = ''; base.ui.editStep = false; base.ui.shrink = false; base.ui.custom = false; base.ui.outDate = '';
           if (base.screen === 'checkout' || base.screen === 'tour' || base.screen === 'setup') base.screen = 'today';
+          /* v0.7.5: a "so that" picked from the old one-tap options moves from project.why to project.soThat */
+          if (!base.project.soThat && OLD_SO_THAT.indexOf((base.project.why || '').trim()) >= 0) { base.project.soThat = base.project.why.trim(); base.project.why = ''; }
         }
       } else {
         var oldRaw = localStorage.getItem(OLD_KEY);
@@ -605,7 +609,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.4';
+  var APP_VERSION = 'v0.7.5';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
@@ -693,6 +697,7 @@
           '<div class="row" style="gap:14px"><button class="btn small-btn" data-act="sendFirst">Send to Ran</button><button class="link" data-act="skipFirst">Skip</button></div></div>' : '') +
         (has(d.step) && !d.rest ? '<p><span class="struck">' + esc(d.step) + '</span></p>' : '') +
         (resultLabel(d.result) ? '<span class="pill">' + esc(resultLabel(d.result)) + '</span>' : '') +
+        (!d.rest && (d.result === 'stuck' || d.result === 'not') ? '<button class="link" data-act="openIdeal" data-arg="today">Want to picture the day it works?</button>' : '') +
         (has(d.happened) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What happened</span><p>' + esc(d.happened) + '</p></div>' : '') +
         (has(d.changes) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What it changes</span><p>' + esc(d.changes) + '</p></div>' : '') +
         (has(tomorrow) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">Tomorrow</span><p>' + esc(tomorrow) + '</p></div>' : '') +
@@ -721,8 +726,7 @@
         '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
         shrinkPanel(d) +
         '<button class="btn" data-act="startStep">Start my step</button>' +
-        '<button class="link" data-act="wrapUp">Just record today</button>' +
-        '<button class="link" data-act="openIdeal">Stuck, or putting it off?</button>';
+        '<button class="link" data-act="wrapUp">Just record today</button>';
     }
     return '<section class="screen">' + head + intro + due + yNote + weekLine + body + FOOT + '</section>' + tabs('today');
   };
@@ -802,7 +806,7 @@
   }
 
   /* Setup (v0.7.4): what Grove is, your goal, the first week. Every step can be skipped. The ideal working day
-     moved to its own optional screen ("Stuck, or putting it off?" on Today); why energy matters moved next to the energy question. */
+     moved to its own optional screen ("Picture the day it works", in the Growth Map); why energy matters moved next to the energy question. */
   var GOAL_STARTERS = ['Finish ', 'Test ', 'Launch ', 'Write ', 'Learn ', 'Get better at '];
   /* Ideal working day: four short scenes, each a few questions, with a box to jot right there.
      The moments that matter for getting started: waking, starting, working, stopping. */
@@ -824,12 +828,13 @@
   var SETUP_STEPS = 3;
   /* Setup screen 1 (v0.7.4): three ways an idea stalls, so people recognise themselves. One tap, optional. */
   var FIT_OPTIONS = [['start', 'An idea I keep not starting'], ['polish', 'I keep polishing and never show it'], ['stop', 'I start strong, then stop']];
-  /* Setup screen 2: the "so that" of a user story, as one tap instead of writing. Saved as project.why. */
-  var SO_THAT = ['I earn from what I know', 'I prove to myself I can', 'it helps people like me', 'just for the joy of it'];
+  /* Setup screen 2: the "so that" of a user story, in the person's own words (v0.7.5; no ready-made options).
+     Kept apart from the Growth Map's "Why does this matter to you?" (project.why). */
   function goalSentence() {
-    var g = (S.project.what || '').trim().replace(/[.\s]+$/, ''), w = (S.project.why || '').trim().replace(/[.\s]+$/, '');
+    var g = (S.project.what || '').trim().replace(/[.\s]+$/, '');
+    var w = (S.project.soThat || '').trim().replace(/^so that\s+/i, '').replace(/[.\s]+$/, '');
     if (!g) return '';
-    return w && SO_THAT.indexOf(w) >= 0 ? g + ', so that ' + w + '.' : g + '.';
+    return w ? g + ', so that ' + w + '.' : g + '.';
   }
   /* Text boxes grow with what is written, so the whole entry stays visible. */
   function autosize(el) { if (el && el.tagName === 'TEXTAREA') { el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; } }
@@ -859,22 +864,19 @@
       next = '<button class="btn" data-act="setupStep" data-arg="1">Set it up · one minute</button>';
     } else if (i === 1) {
       var chips = GOAL_STARTERS.map(function (g) { return '<button data-act="goalStarter" data-arg="' + esc(g) + '">' + esc(g.trim()) + '…</button>'; }).join('');
-      var why = (S.project.why || '').trim();
-      var so = SO_THAT.map(function (x) {
-        var on = why === x;
-        return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-act="soThat" data-arg="' + esc(x) + '">' + esc(x) + '</button>';
-      }).join('');
       var sentence = goalSentence();
       body = '<div class="stack tour-text"><h1>What do you want to make?</h1></div>' +
         '<div class="card"><div><label class="label" for="goal-input">I want to</label>' +
         '<textarea id="goal-input" class="plain" rows="2" data-bind="project.what" placeholder="e.g. Finish the first chapter">' + esc(S.project.what) + '</textarea></div></div>' +
         '<div class="seg chips goal-chips">' + chips + '</div>' +
-        '<div class="stack" style="gap:10px"><span class="label">So that… (optional)</span><div class="seg chips so-chips">' + so + '</div></div>' +
+        '<div class="card"><div><label class="label" for="sothat-input">So that… (optional)</label>' +
+        '<textarea id="sothat-input" class="plain" rows="2" data-bind="project.soThat" placeholder="In your own words. You can leave it empty.">' + esc(S.project.soThat) + '</textarea></div></div>' +
         '<p id="goal-sentence" class="small muted"' + (sentence ? '' : ' hidden') + '>' + esc(sentence) + '</p>';
       next = '<button class="btn" data-act="setupStep" data-arg="2">Next</button>';
     } else {
       var wk = monday(today()), w = W(wk), weeks = S.project.weeks || 4;
-      var wchips = [2, 4, 6, 8].map(function (n) { return '<button class="' + (weeks === n ? 'on' : '') + '" aria-pressed="' + (weeks === n) + '" data-act="setWeeks" data-arg="' + n + '">' + n + ' weeks</button>'; }).join('');
+      var wopts = [2, 4, 8, 12]; if (wopts.indexOf(weeks) < 0) wopts.push(weeks); wopts.sort(function (a, b) { return a - b; });
+      var wchips = wopts.map(function (n) { return '<button class="' + (weeks === n ? 'on' : '') + '" aria-pressed="' + (weeks === n) + '" data-act="setWeeks" data-arg="' + n + '">' + n + ' weeks</button>'; }).join('');
       body = '<div class="stack tour-text"><h1>Plan it</h1></div>' +
         '<div class="stack" style="gap:10px"><span class="label">How long will you give it?</span><div class="seg">' + wchips + '</div></div>' +
         field('By the end of ' + weeks + ' weeks, what would you like to have?', 'project.periodGoal', S.project.periodGoal, 'e.g. The site is live and five people have seen it', 2) +
@@ -892,6 +894,7 @@
   screens.ideal = function () {
     var goal = (S.project.what || '').trim();
     var k = Math.min(S.ui.idealStep || 0, IDEAL_PROMPTS.length);
+    var from = S.ui.idealFrom === 'map' ? 'map' : 'today';
     var guide = k < IDEAL_PROMPTS.length
       ? '<div class="ideal-guide"><span class="blob lv3 breathe-slow ideal-blob" aria-hidden="true"></span>' +
         '<p class="serif ideal-text">' + esc(IDEAL_PROMPTS[k]) + '</p>' +
@@ -902,12 +905,12 @@
       : '<div class="ideal-recap stack"><span class="label">Your ideal working day</span>' + (idealText() ? idealLines().map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') : '<p class="small muted">Nothing written this time. That is fine.</p>') +
         '<button class="link" style="align-self:flex-start" data-act="idealRestart">Walk through it again</button></div>';
     return '<section class="screen tour setup">' +
-      '<header class="top"><button class="icon-btn" aria-label="Back" data-act="go" data-arg="today">' + svg('back', 24) + '</button><span></span></header>' +
-      '<div class="stack tour-text"><h1>Stuck, or putting it off?</h1>' +
+      '<header class="top"><button class="icon-btn" aria-label="Back" data-act="go" data-arg="' + from + '">' + svg('back', 24) + '</button><span></span></header>' +
+      '<div class="stack tour-text"><h1>Picture the day it works</h1>' +
       '<p class="muted">It is easier to start when you can feel where you are going. Picture' + (goal ? ' "' + esc(goal) + '"' : ' it') + ' going well, and jot a few words.</p></div>' +
       guide +
       '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>' +
-      '<div style="flex:1"></div><button class="btn" data-act="go" data-arg="today">Back to today</button></section>';
+      '<div style="flex:1"></div><button class="btn" data-act="go" data-arg="' + from + '">' + (from === 'map' ? 'Back to Growth Map' : 'Back to today') + '</button></section>';
   };
 
   screens.tour = function () {
@@ -1159,6 +1162,8 @@
     return '<section class="screen">' +
       '<header class="top"><span class="brand">Growth Map</span><span class="small muted">Optional</span></header>' + exampleBanner() +
       (has(S.project.what) ? '<div class="notice stack" style="gap:4px"><span class="label">Your goal</span><span>' + esc(S.project.what) + '</span></div>' : '') +
+      '<button class="card map-ideal" data-act="openIdeal" data-arg="map"><span class="stack" style="gap:2px"><span class="serif">Picture the day it works</span>' +
+      '<span class="small muted">' + (idealText() ? 'You wrote this before. Read it again, or walk through it.' : 'Three short questions, when you want to remember why.') + '</span></span><span class="chev">' + svg('chev', 22) + '</span></button>' +
       '<p class="small muted">For turning a project into something you offer others. Not sure where to start? Open the step that sounds most like where you are now.</p>' +
       '<p class="muted">Work through the five steps in order, or open only the one you need. What you write here fills in your AI prompts and your offer card.</p>' +
       MAP.map(function (m, i) {
@@ -1349,8 +1354,7 @@
       toast('Coming soon: the WoMen AI Lab community, to share what you are making and see what others make.');
     },
     setFit: function (arg) { S.project.fit = S.project.fit === arg ? '' : arg; render(); },
-    soThat: function (arg) { S.project.why = (S.project.why || '').trim() === arg ? '' : arg; render(); },
-    openIdeal: function () { S.ui.idealStep = 0; go('ideal'); },
+    openIdeal: function (arg) { S.ui.idealStep = 0; S.ui.idealFrom = arg === 'map' ? 'map' : 'today'; go('ideal'); },
     offerPath: function (arg) { S.project.offerPath = S.project.offerPath === arg ? '' : arg; render(); },
     idealNext: function () { S.ui.idealStep = (S.ui.idealStep || 0) + 1; render(); },
     idealBack: function () { S.ui.idealStep = Math.max(0, (S.ui.idealStep || 0) - 1); render(); },

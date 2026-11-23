@@ -328,3 +328,7 @@ details.why > summary::-webkit-details-marker { display: none; }
 .fit-chips button, .so-chips button { text-align: left; }
 
 .howlist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Growth Map: entry to "Picture the day it works" */
+.card.map-ideal { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+.card.map-ideal .chev { transform: rotate(-90deg); display: inline-flex; color: var(--muted, inherit); }
