@@ -1,8 +1,8 @@
 # Grove
 
-**Turn an idea you care about into an offer you can test.**
+**Grove · the builder's journal**
 
-Choose a step that fits your energy, try it with real people, and use what you learn to decide what to build or sell next. Everything you write stays in your own browser.
+Make the thing you keep putting off. One small step a day, one real reaction a week. Everything you write stays in your own browser.
 
 Open it: https://randing-create.github.io/grove/
 
