@@ -69,7 +69,7 @@
     { key: 'pollinate', name: 'Pollinate', title: 'Invite, follow up, let it travel', fields: ['invite'], prompts: ['pitch', 'followup', 'investors'],
       when: 'People say "nice" and nothing happens, or the work is not travelling beyond the people you know.',
       write: 'A concrete invitation and what saying yes involves, such as bringing a project, booking a trial, or paying a stated price.',
-      tryIt: 'Ask one person directly. Follow up once. Then ask them who else should see it. Record what they did and what a no or a silence taught you. A no counts as Reach.',
+      tryIt: 'Ask one person directly. Follow up once. Then ask who else might like to see it. Record what they did and what a no or a silence taught you. A no counts as Reach.',
       question: 'Who says yes to a concrete invitation, and who do they pass it on to?' }
   ];
 
@@ -133,7 +133,7 @@
   function blank() {
     return {
       v: 2, screen: 'today',
-      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '', idealPlace: '', idealDoing: '', idealFeel: '', ideal1: '', ideal2: '', ideal3: '', ideal4: '', ideal5: '', ideal6: '', offerPath: '', weeks: 4 },
+      project: { what: '', why: '', who: '', before: '', after: '', offer: '', place: '', invite: '', contact: '', idealPlace: '', idealDoing: '', idealFeel: '', ideal1: '', ideal2: '', ideal3: '', ideal4: '', ideal5: '', ideal6: '', offerPath: '', fit: '', periodGoal: '', weeks: 4 },
       weeks: {}, days: {}, rings: [], paused: false,
       review: { decision: '', reason: '' },
       feedback: { name: '', contact: '', again: '', tried: '', stuck: '', change: '', include: false, shareCounts: true, first: '' },
@@ -341,7 +341,7 @@
       return bits.length ? '<button class="notice reframe-done" data-act="reframeOpen"><span class="label">What you noticed</span><span class="small">' + esc(bits.join(' · ')) + '</span></button>' : '';
     }
     var chips = DRAINS.map(function (x) { return '<button class="' + (d.drain === x ? 'on' : '') + '" aria-pressed="' + (d.drain === x) + '" data-act="drain" data-arg="' + esc(x) + '">' + x + '</button>'; }).join('');
-    return '<div class="reframe stack"><span class="label">Low energy is information, not a verdict</span>' +
+    return '<div class="reframe stack"><span class="label">Low energy today? A few questions, if you like</span>' +
       '<p class="small">What is taking your energy today?</p><div class="seg chips">' + chips + '</div>' +
       field('If a friend felt like this, what would you tell them?', 'day.kind', d.kind, 'e.g. you are allowed to go slowly today', 2) +
       field('What would make the next ten minutes a little easier?', 'day.easier', d.easier, 'e.g. tea first, phone in another room', 2) +
@@ -377,9 +377,9 @@
   }
   function sizeLine(energy) {
     if (!energy) return '';
-    if (energy <= 2) return 'Low energy: pick the least effort that can still teach you something. Five minutes is enough.';
-    if (energy === 3) return 'Steady energy: about half an hour on the step that teaches you most.';
-    return 'Good energy: a day for the step that teaches the most, like watching someone use it.';
+    if (energy <= 2) return 'Low energy: what is the smallest step that still tells you something? Five minutes is enough.';
+    if (energy === 3) return 'Steady energy: what could you do in about half an hour?';
+    return 'Good energy: is there a step you have been saving for a day like this, like watching someone use it?';
   }
   function linesFor(d) {
     var step = d.step || '';
@@ -492,10 +492,12 @@
   /* ---------- view pieces ---------- */
 
   function backBtn(target) { return '<button class="icon-btn" aria-label="Back" data-act="go" data-arg="' + target + '">' + svg('back', 24) + '</button>'; }
+  /* Before someone has checked out once, Today keeps to the main line (v0.7.4). */
+  function everOut() { return Object.keys(S.days).some(function (k) { return S.days[k] && S.days[k].out; }); }
   function tabs(active) {
     var t = [['today', 'Today'], ['week', 'This Week'], ['map', 'Growth Map']];
     return '<nav class="tabs" aria-label="Main"><span class="brand rail-brand">' + LOGO + 'Grove</span>' + t.map(function (x) {
-      var dot = x[0] === 'map' && !S.ui.mapSeen ? '<span class="newdot" aria-label="not opened yet"></span>' : '';
+      var dot = x[0] === 'map' && !S.ui.mapSeen && everOut() ? '<span class="newdot" aria-label="not opened yet"></span>' : '';
       return '<button data-act="go" data-arg="' + x[0] + '"' + (active === x[0] ? ' class="on"' : '') + '>' + x[1] + dot + '</button>';
     }).join('') + '</nav>';
   }
@@ -603,18 +605,20 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.3';
+  var APP_VERSION = 'v0.7.4';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
-  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button></p>';
+  /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
+  var COMMUNITY_URL = '';
+  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + '<br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button> · <button class="link foot-link" data-act="community">Community</button></p>';
 
   /* The tour: the five things worth knowing first. */
   var TOUR = [
     { art: function () { return '<span class="blob lv3 tour-blob" aria-hidden="true"></span>'; },
       title: 'One small step a day',
-      body: 'Tell Grove how much energy you have, and size one step to fit. On a low day, five minutes counts.' },
+      body: 'How much energy do you have today? Grove sizes one step to fit. On a low day, five minutes counts.' },
     { art: function () { return weekRing({ shown: 5, target: 7, learn: 2, learnTarget: 3, reach: 1 }, 132); },
       title: 'Ideas die three ways: you stop, you polish, you hide',
-      body: 'Three rings guard against them. Show up: check in every day, to work or to rest. Learn: check out and write what happened. Reach, in the middle: one reaction from someone it is for.' },
+      body: 'Three rings guard against them. Show up: a day you checked in, to work or to rest. Learn: check out and write what happened. Reach, in the middle: one reaction from someone it is for.' },
     { art: function () { return '<span class="logo-big tour-logo">' + LOGO + '</span>'; },
       title: 'Decide on Sunday',
       body: 'Look back at what happened and choose: continue, adjust or pause. Each review is kept as a Growth Ring.' },
@@ -637,7 +641,7 @@
     var head = '<header class="top"><span class="brand">' + LOGO + 'Grove</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
     var intro = exampleBanner() + (hasAnyData() ? '' :
       '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><span class="label">Grove · the builder\'s journal</span><p class="serif">Make the thing you keep putting off.</p>' +
-      '<p class="small muted">One small step a day, one real reaction a week.</p>' +
+      '<ul class="howlist small"><li>Check in with your energy and pick one small step.</li><li>Do it on a quiet page with a timer.</li><li>Check out: what happened, and did someone react? Once a week, decide what\'s next.</li><li class="muted">When you want to think it through: the Growth Map, from idea to offer.</li></ul>' +
       '<div class="row wrap"><button class="btn ghost small-btn" data-act="setupAgain">Set up my goal</button>' +
       '<button class="btn ghost small-btn" data-act="example">See an example</button></div></div>');
     var due = (!S.paused && reviewWeek() !== monday(today()))
@@ -647,9 +651,9 @@
       (has(w.question)
         ? '<span class="label">This week\'s goal</span><span class="serif">' + esc(w.question) + '</span>'
         : (has(S.project.what)
-          ? '<span class="label">Your goal</span><span class="serif">' + esc(S.project.what) + '</span>'
+          ? '<span class="label">Your goal</span><span class="serif">' + esc(goalSentence()) + '</span>'
           : '<span class="label">Your goal</span><span class="serif empty">No goal yet. Tap Setup at the bottom to add one.</span>')) +
-      '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span></span>' + weekRing(statsFor(monday(today())), 68) + '</button>';
+      (everOut() ? '<span class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</span>' : '') + '</span>' + (everOut() ? weekRing(statsFor(monday(today())), 68) : '') + '</button>';
     var body;
     var yOpen = openYesterday();
     var yNote = yOpen ? '<div class="notice stack"><p>Yesterday\'s step was started but not wrapped up.</p><div class="row"><button class="btn ghost small-btn" data-act="wrapUp" data-arg="' + yOpen + '">Wrap up yesterday</button></div></div>' : '';
@@ -697,7 +701,7 @@
         '<button class="link" data-act="reopen">Change today\'s entry</button></div>';
     } else {
       var energy = (!d.energy && !d.energySkipped)
-        ? '<div class="stack"><h1>How much energy do you have today?</h1>' + energyPicker() +
+        ? '<div class="stack"><h1>How much energy do you have today?</h1>' + energyWhy() + energyPicker() +
           '<button class="btn ghost" data-act="setEnergy">That is my energy</button>' +
           '<button class="link" style="align-self:center" data-act="skipEnergy">Skip</button></div>'
         : '<button class="link" style="align-self:flex-start" data-act="redoEnergy">' + (d.energy ? 'Energy ' + d.energy + ' of 5, ' + LEVELS[d.energy - 1].toLowerCase() + ' · change' : 'Energy skipped · check now') + '</button>';
@@ -717,7 +721,8 @@
         '<button class="btn ghost small-btn" style="flex:1" data-act="rest">Rest today</button></div>' +
         shrinkPanel(d) +
         '<button class="btn" data-act="startStep">Start my step</button>' +
-        '<button class="link" data-act="wrapUp">Just record today</button>';
+        '<button class="link" data-act="wrapUp">Just record today</button>' +
+        '<button class="link" data-act="openIdeal">Stuck, or putting it off?</button>';
     }
     return '<section class="screen">' + head + intro + due + yNote + weekLine + body + FOOT + '</section>' + tabs('today');
   };
@@ -793,19 +798,22 @@
       '<span id="pause-blob" class="blob lv3 pause-blob' + (playing ? ' breathing' : '') + '" aria-hidden="true"></span>' +
       '<span class="stack" style="gap:6px;flex:1"><span class="pause-track"><span id="pause-bar"></span></span><span id="pause-time" class="small muted">0:00</span></span></div>' +
       extra +
-      '<p class="small muted">' + (S.ui.pauseEnded ? (key === 'grounding' ? 'That is the pause. Make that first move now.' : 'Rest done. Your step will still be there.') : T.note + ' Stop whenever you want.') + '</p></div>';
+      '<p class="small muted">' + (S.ui.pauseEnded ? (key === 'grounding' ? 'That is the pause. Ready for the first small move?' : 'Rest done. Your step will still be there.') : T.note + ' Stop whenever you want.') + '</p></div>';
   }
 
-  /* Setup (v0.7): what Grove is, your goal, your ideal day, why energy matters. Every step can be skipped. */
+  /* Setup (v0.7.4): what Grove is, your goal, the first week. Every step can be skipped. The ideal working day
+     moved to its own optional screen ("Stuck, or putting it off?" on Today); why energy matters moved next to the energy question. */
   var GOAL_STARTERS = ['Finish ', 'Test ', 'Launch ', 'Write ', 'Learn ', 'Get better at '];
   /* Ideal working day: four short scenes, each a few questions, with a box to jot right there.
      The moments that matter for getting started: waking, starting, working, stopping. */
   var IDEAL_PROMPTS = [
-    'Imagine a working day a few months from now. The thing you have been putting off is moving. You are just waking up. What do you hear? How does your body feel? You know you will work on it today. Notice how that feels.',
-    'It is time to work on it. Where are you? What time is it, what is the light like? What is the very first thing you do? Today, starting is easy. Notice what makes it easy.',
-    'You are in the middle of it. What exactly are you making? Is anyone with you? Notice your shoulders, your chest, your face. Something is working. What is it?',
-    'You are done for today. Look at what you made. Who is it for? How do you feel right now? Find one small detail you want to keep.'
+    'A few months from now, the thing you kept putting off is moving. It is time to work on it. Where are you, and what makes starting easy?',
+    'You are in the middle of it. What are you making, and how does it feel?',
+    'You are done for today. Who is it for, and what small detail do you want to keep?'
   ];
+  /* Saved under the same keys as the earlier four scenes (2 = starting, 3 = middle, 4 = done), so old notes still show
+     and the grounding pause still finds "what makes starting easy" in ideal2. */
+  var IDEAL_KEYS = ['ideal2', 'ideal3', 'ideal4'];
   var ENERGY_GUIDE = [
     ['Empty', 'drained, numb', 'rest counts, or five minutes'],
     ['Low', 'tired, foggy, worried', 'something small and familiar'],
@@ -813,7 +821,16 @@
     ['Good', 'clear, curious', 'the step that teaches most'],
     ['High', 'bright, brave', 'the bold one: show it, ask, invite']
   ];
-  var SETUP_STEPS = 5;
+  var SETUP_STEPS = 3;
+  /* Setup screen 1 (v0.7.4): three ways an idea stalls, so people recognise themselves. One tap, optional. */
+  var FIT_OPTIONS = [['start', 'An idea I keep not starting'], ['polish', 'I keep polishing and never show it'], ['stop', 'I start strong, then stop']];
+  /* Setup screen 2: the "so that" of a user story, as one tap instead of writing. Saved as project.why. */
+  var SO_THAT = ['I earn from what I know', 'I prove to myself I can', 'it helps people like me', 'just for the joy of it'];
+  function goalSentence() {
+    var g = (S.project.what || '').trim().replace(/[.\s]+$/, ''), w = (S.project.why || '').trim().replace(/[.\s]+$/, '');
+    if (!g) return '';
+    return w && SO_THAT.indexOf(w) >= 0 ? g + ', so that ' + w + '.' : g + '.';
+  }
   /* Text boxes grow with what is written, so the whole entry stays visible. */
   function autosize(el) { if (el && el.tagName === 'TEXTAREA') { el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; } }
   function idealLines() {
@@ -821,59 +838,46 @@
     return jots.length ? jots : [S.project.idealPlace, S.project.idealDoing, S.project.idealFeel].filter(has);
   }
   function idealText() { return idealLines().join(' · '); }
+  function energyWhy() {
+    return '<details class="why"><summary class="small">Why?</summary><div class="stack" style="gap:8px;padding-top:8px">' +
+      '<p class="small muted">Low energy narrows what feels possible; higher energy widens it. Grove sizes the step to fit (Fredrickson, 2001).</p>' +
+      '<div class="energy-guide">' + ENERGY_GUIDE.map(function (e, n) {
+        return '<div class="eg-row"><span class="blob lv' + (n + 1) + ' eg-dot" aria-hidden="true"></span><span class="small"><strong>' + e[0] + '</strong> <span class="muted">→ ' + e[2] + '</span></span></div>';
+      }).join('') + '</div></div></details>';
+  }
   screens.setup = function () {
     var i = Math.min(Math.max(S.ui.setupIdx || 0, 0), SETUP_STEPS - 1), body = '', next = '';
-    var goal = (S.project.what || '').trim();
     if (i === 0) {
+      var fits = FIT_OPTIONS.map(function (f) {
+        var on = S.project.fit === f[0];
+        return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-act="setFit" data-arg="' + f[0] + '">' + esc(f[1]) + '</button>';
+      }).join('');
       body = '<div class="tour-art"><span class="logo-big tour-logo">' + LOGO + '</span></div>' +
         '<div class="stack tour-text"><span class="label">Grove · the builder\'s journal</span><h1>Make the thing you keep putting off</h1>' +
-        '<p class="muted">One small step a day, one real reaction a week.</p></div>';
-      next = '<button class="btn" data-act="setupStep" data-arg="1">Set it up · two minutes</button>';
+        '<p class="muted">One small step a day, one real reaction a week.</p></div>' +
+        '<div class="stack" style="gap:10px"><span class="label">Sounds like you?</span><div class="seg chips fit-chips">' + fits + '</div></div>';
+      next = '<button class="btn" data-act="setupStep" data-arg="1">Set it up · one minute</button>';
     } else if (i === 1) {
       var chips = GOAL_STARTERS.map(function (g) { return '<button data-act="goalStarter" data-arg="' + esc(g) + '">' + esc(g.trim()) + '…</button>'; }).join('');
-      var yes = S.project.offerPath === 'yes', no = S.project.offerPath === 'no';
-      body = '<div class="stack tour-text"><h1>What do you want to make?</h1>' +
-        '<p class="muted">A project, or a skill like focus. One line. Tap a starter if it helps.</p></div>' +
-        '<div class="card"><div><label class="label" for="goal-input">Your goal</label>' +
+      var why = (S.project.why || '').trim();
+      var so = SO_THAT.map(function (x) {
+        var on = why === x;
+        return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-act="soThat" data-arg="' + esc(x) + '">' + esc(x) + '</button>';
+      }).join('');
+      var sentence = goalSentence();
+      body = '<div class="stack tour-text"><h1>What do you want to make?</h1></div>' +
+        '<div class="card"><div><label class="label" for="goal-input">I want to</label>' +
         '<textarea id="goal-input" class="plain" rows="2" data-bind="project.what" placeholder="e.g. Finish the first chapter">' + esc(S.project.what) + '</textarea></div></div>' +
         '<div class="seg chips goal-chips">' + chips + '</div>' +
-        '<div class="stack" style="gap:10px"><span class="label">Do you want to turn it into something you offer others?</span>' +
-        '<div class="seg"><button class="' + (yes ? 'on' : '') + '" aria-pressed="' + yes + '" data-act="offerPath" data-arg="yes">Yes</button>' +
-        '<button class="' + (no ? 'on' : '') + '" aria-pressed="' + no + '" data-act="offerPath" data-arg="no">Not now</button></div>' +
-        (yes ? '<p class="small muted">The Growth Map walks you from idea to offer in five steps. Open it any time from the tab at the bottom.</p>' : '') + '</div>';
+        '<div class="stack" style="gap:10px"><span class="label">So that… (optional)</span><div class="seg chips so-chips">' + so + '</div></div>' +
+        '<p id="goal-sentence" class="small muted"' + (sentence ? '' : ' hidden') + '>' + esc(sentence) + '</p>';
       next = '<button class="btn" data-act="setupStep" data-arg="2">Next</button>';
-    } else if (i === 2) {
-      body = '<div class="stack tour-text"><h1>How you feel decides what you do</h1>' +
-        '<p class="muted">Starting is easier when you can already feel where you are going. So next, a short picture of your ideal working day.</p>' +
-        '<p class="muted">And each time you check in, Grove asks about your energy. Low energy narrows what feels possible; higher energy widens it. The step is sized to fit.</p></div>' +
-        '<div class="energy-guide">' + ENERGY_GUIDE.map(function (e, n) {
-          return '<div class="eg-row"><span class="blob lv' + (n + 1) + ' eg-dot" aria-hidden="true"></span><span class="small"><strong>' + e[0] + '</strong> · ' + e[1] + ' <span class="muted">→ ' + e[2] + '</span></span></div>';
-        }).join('') + '</div>' +
-        '<p class="small muted">Based on research on how emotions widen or narrow attention (Fredrickson, 2001). More in Why it works, at the bottom of the Growth Map.</p>';
-      next = '<button class="btn" data-act="setupStep" data-arg="3">Picture it</button>';
-    } else if (i === 3) {
-      var k = Math.min(S.ui.idealStep || 0, IDEAL_PROMPTS.length);
-      var guide = k < IDEAL_PROMPTS.length
-        ? '<div class="ideal-guide"><span class="blob lv3 breathe-slow ideal-blob" aria-hidden="true"></span>' +
-          '<p class="serif ideal-text">' + esc(IDEAL_PROMPTS[k]) + '</p>' +
-          '<textarea id="jot-ideal' + (k + 1) + '" class="ideal-jot" rows="2" data-bind="project.ideal' + (k + 1) + '" placeholder="A few words, or tap the microphone on your keyboard and just speak.">' + esc(S.project['ideal' + (k + 1)] || '') + '</textarea>' +
-          '<span class="small muted">' + (k + 1) + ' of ' + IDEAL_PROMPTS.length + '</span>' +
-          '<div class="row" style="justify-content:center;gap:16px">' + (k > 0 ? '<button class="link" data-act="idealBack">Back</button>' : '') +
-          '<button class="btn ghost small-btn" data-act="idealNext">' + (k === IDEAL_PROMPTS.length - 1 ? 'Finish' : 'Continue') + '</button></div></div>'
-        : '<div class="ideal-recap stack"><span class="label">Your ideal working day</span>' + (idealText() ? idealLines().map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') : '<p class="small muted">Nothing written this time. That is fine.</p>') +
-          '<button class="link" style="align-self:flex-start" data-act="idealRestart">Walk through it again</button></div>';
-      body = '<div class="stack tour-text"><h1>Your ideal working day</h1>' +
-        '<p class="muted">Imagine' + (goal ? ' "' + esc(goal) + '"' : ' it') + ' going well. Jot a few words as you go.</p></div>' +
-        guide +
-        '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>';
-      next = '<button class="btn" data-act="setupStep" data-arg="4">Next</button>';
     } else {
       var wk = monday(today()), w = W(wk), weeks = S.project.weeks || 4;
       var wchips = [2, 4, 6, 8].map(function (n) { return '<button class="' + (weeks === n ? 'on' : '') + '" aria-pressed="' + (weeks === n) + '" data-act="setWeeks" data-arg="' + n + '">' + n + ' weeks</button>'; }).join('');
-      body = '<div class="stack tour-text"><h1>Plan the first week</h1>' +
-        '<p class="muted">A short horizon keeps it real. You can change both later in This Week.</p></div>' +
+      body = '<div class="stack tour-text"><h1>Plan it</h1></div>' +
         '<div class="stack" style="gap:10px"><span class="label">How long will you give it?</span><div class="seg">' + wchips + '</div></div>' +
-        field('This week\'s goal', 'week.question', w.question, 'e.g. Draft the outline and get one reaction to it', 2) +
+        field('By the end of ' + weeks + ' weeks, what would you like to have?', 'project.periodGoal', S.project.periodGoal, 'e.g. The site is live and five people have seen it', 2) +
         check('Share anonymous weekly counts, so Ran can see if Grove works (no names, no notes)', 'feedback.shareCounts', S.feedback.shareCounts !== false);
       next = '<button class="btn" data-act="setupDone">Start today</button>';
     }
@@ -882,6 +886,28 @@
       '<header class="top">' + (i ? '<button class="icon-btn" aria-label="Back" data-act="setupStep" data-arg="' + (i - 1) + '">' + svg('back', 24) + '</button>' : '<span class="brand">' + LOGO + 'Grove</span>') +
       '<button class="link" data-act="setupDone">Skip setup</button></header>' +
       body + '<div style="flex:1"></div><div class="tdots" aria-hidden="true">' + dots.join('') + '</div>' + next + '</section>';
+  };
+
+  /* Optional: the ideal working day, for when it is hard to start (v0.7.4, moved out of setup). */
+  screens.ideal = function () {
+    var goal = (S.project.what || '').trim();
+    var k = Math.min(S.ui.idealStep || 0, IDEAL_PROMPTS.length);
+    var guide = k < IDEAL_PROMPTS.length
+      ? '<div class="ideal-guide"><span class="blob lv3 breathe-slow ideal-blob" aria-hidden="true"></span>' +
+        '<p class="serif ideal-text">' + esc(IDEAL_PROMPTS[k]) + '</p>' +
+        '<textarea id="jot-' + IDEAL_KEYS[k] + '" class="ideal-jot" rows="2" data-bind="project.' + IDEAL_KEYS[k] + '" placeholder="A few words, or tap the microphone on your keyboard and just speak.">' + esc(S.project[IDEAL_KEYS[k]] || '') + '</textarea>' +
+        '<span class="small muted">' + (k + 1) + ' of ' + IDEAL_PROMPTS.length + '</span>' +
+        '<div class="row" style="justify-content:center;gap:16px">' + (k > 0 ? '<button class="link" data-act="idealBack">Back</button>' : '') +
+        '<button class="btn ghost small-btn" data-act="idealNext">' + (k === IDEAL_PROMPTS.length - 1 ? 'Finish' : 'Continue') + '</button></div></div>'
+      : '<div class="ideal-recap stack"><span class="label">Your ideal working day</span>' + (idealText() ? idealLines().map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') : '<p class="small muted">Nothing written this time. That is fine.</p>') +
+        '<button class="link" style="align-self:flex-start" data-act="idealRestart">Walk through it again</button></div>';
+    return '<section class="screen tour setup">' +
+      '<header class="top"><button class="icon-btn" aria-label="Back" data-act="go" data-arg="today">' + svg('back', 24) + '</button><span></span></header>' +
+      '<div class="stack tour-text"><h1>Stuck, or putting it off?</h1>' +
+      '<p class="muted">It is easier to start when you can feel where you are going. Picture' + (goal ? ' "' + esc(goal) + '"' : ' it') + ' going well, and jot a few words.</p></div>' +
+      guide +
+      '<p class="small muted">Adapted from the ideal-day visualization in Martha Beck\'s life-coaching method.</p>' +
+      '<div style="flex:1"></div><button class="btn" data-act="go" data-arg="today">Back to today</button></section>';
   };
 
   screens.tour = function () {
@@ -992,12 +1018,14 @@
     return '<section class="screen wide">' +
       '<header class="top"><span class="brand">' + (isCur ? 'This Week' : 'Next Week') + '</span><span class="small muted">' + esc(range(wk)) + '</span></header>' + exampleBanner() +
       (S.ui.note ? '<div class="notice">' + esc(S.ui.note) + '</div>' : '') +
+      (S.ui.askRan ? '<div class="notice stack"><p>Anything to tell Ran about Grove this week?</p><div class="row" style="gap:14px"><button class="btn ghost small-btn" data-act="openFeedback">Tell Ran</button><button class="link" data-act="dismissAsk">Not now</button></div></div>' : '') +
       '<div class="seg" role="group" aria-label="Which week">' +
       '<button class="' + (isCur ? 'on' : '') + '" aria-pressed="' + isCur + '" data-act="showWeek" data-arg="' + cur + '">This week</button>' +
       '<button class="' + (!isCur ? 'on' : '') + '" aria-pressed="' + !isCur + '" data-act="showWeek" data-arg="' + addDays(cur, 7) + '">Plan next week</button></div>' +
       '<div class="cols"><div class="g g1">' +
       (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' : '') +
-      field('This week\'s goal', 'week.question', w.question, 'What do you want to have done or found out by Sunday?', 2) +
+      field('Your ' + (S.project.weeks || 4) + '-week goal', 'project.periodGoal', S.project.periodGoal, 'What would you like to have by the end?', 2) +
+      field('This week\'s goal', 'week.question', w.question, 'A piece of the bigger goal: what would you like done or found out by Sunday?', 2) +
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
       field('Who could react to it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
       '<p class="small muted" style="margin-top:-12px">Not sure who? Someone you already know who has this problem is enough. <button class="link" style="padding:0;min-height:0;font-size:inherit" data-act="copyAsk">Copy a message to send them</button></p>' +
@@ -1059,7 +1087,7 @@
     }).join('');
     var where = FEEDBACK_ENDPOINT ? 'It goes straight to Ran\'s private Notion page. Nothing else leaves this device.' : 'You choose where to send it, for example a message to Ran.';
     return '<section class="screen pad-bottom">' +
-      '<header class="top">' + backBtn('week') + '<span class="small muted">Feedback</span></header>' +
+      '<header class="top">' + backBtn(S.ui.feedbackFrom || 'week') + '<span class="small muted">Feedback</span></header>' +
       '<h1>Tell Ran how it went</h1>' +
       '<p class="muted">Grove has already noted how you used it this week. Add what only you can say. Every question is optional.</p>' +
       '<div class="stack" style="gap:8px"><span class="label">Would you open Grove again next week?</span><div class="seg" role="group" aria-label="Would you open Grove again next week?">' + again + '</div></div>' +
@@ -1110,7 +1138,8 @@
       '<header class="top">' + backBtn('week') + '<span class="small muted">Review · ' + esc(range(wk)) + '</span></header>' +
       '<h1>What did the week show you?</h1>' +
       '<div class="two"><div><span class="label">This week\'s goal</span><span' + (has(w.question) ? '' : ' class="empty"') + '>' + (has(w.question) ? esc(w.question) : 'Not set') + '</span>' +
-      (has(w.sign) ? '<span class="small muted">Sign: ' + esc(w.sign) + '</span>' : '') + '</div>' +
+      (has(w.sign) ? '<span class="small muted">Sign: ' + esc(w.sign) + '</span>' : '') +
+      (has(S.project.periodGoal) ? '<span class="small muted">Toward: ' + esc(S.project.periodGoal) + '</span>' : '') + '</div>' +
       '<div><span class="label">What happened</span>' + (withNote.length ? withNote.map(function (n) {
         return '<span><span class="small muted">' + esc(shortDay(n.date)) + (n.person ? ' · reach' : '') + '</span><br>' + esc(n.happened) + (has(n.changes) ? '<br><span class="small muted">Next time: ' + esc(n.changes) + '</span>' : '') + '</span>';
       }).join('') : '<span class="empty">Nothing written down yet</span>') + '</div></div>' +
@@ -1304,7 +1333,7 @@
     reframeSkip: function () { D().reframe = 'skipped'; render(); },
     reframeOpen: function () { D().reframe = ''; render(); },
     useExampleStep: function (arg) { var d = D(); d.step = arg; render(); var el = document.getElementById('step-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } },
-    setupAgain: function () { S.ui.setupIdx = 0; S.ui.idealStep = 0; go('setup'); },
+    setupAgain: function () { S.ui.setupIdx = 0; go('setup'); },
     setupStep: function (arg) { S.ui.setupIdx = Math.min(Math.max(Number(arg) || 0, 0), SETUP_STEPS - 1); render(); },
     setWeeks: function (arg) { S.project.weeks = Number(arg); render(); },
     setupDone: function () { S.ui.setupDone = true; S.ui.toured = true; S.ui.setupIdx = 0; go('today'); },
@@ -1313,6 +1342,15 @@
       S.project.what = was ? arg + cur.slice(was.trim().length).trim() : (cur ? arg + cur.charAt(0).toLowerCase() + cur.slice(1) : arg);
       render(); var el = document.getElementById('goal-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     },
+    openFeedback: function () { S.ui.feedbackFrom = ['today', 'week', 'map'].indexOf(S.screen) >= 0 ? S.screen : 'week'; S.ui.askRan = false; go('feedback'); },
+    dismissAsk: function () { S.ui.askRan = false; render(); },
+    community: function () {
+      if (COMMUNITY_URL) { window.open(COMMUNITY_URL, '_blank', 'noopener'); return; }
+      toast('Coming soon: the WoMen AI Lab community, to share what you are making and see what others make.');
+    },
+    setFit: function (arg) { S.project.fit = S.project.fit === arg ? '' : arg; render(); },
+    soThat: function (arg) { S.project.why = (S.project.why || '').trim() === arg ? '' : arg; render(); },
+    openIdeal: function () { S.ui.idealStep = 0; go('ideal'); },
     offerPath: function (arg) { S.project.offerPath = S.project.offerPath === arg ? '' : arg; render(); },
     idealNext: function () { S.ui.idealStep = (S.ui.idealStep || 0) + 1; render(); },
     idealBack: function () { S.ui.idealStep = Math.max(0, (S.ui.idealStep || 0) - 1); render(); },
@@ -1427,7 +1465,8 @@
       }
       S.screen = 'week'; S.ui.confirm = '';
       S.ui.viewWeek = next === monday(today()) ? '' : next;
-      S.ui.note = decision === 'continue' ? 'Saved as a Growth Ring. Same question for the next week. Change anything you like.' : 'Saved as a Growth Ring. Write the question you want to test next.';
+      S.ui.note = decision === 'continue' ? 'Saved as a Growth Ring. Same goal for the next week. Change anything you like.' : 'Saved as a Growth Ring. What would you like to try next week?';
+      S.ui.askRan = true;
       render();
     },
     resume: function () { S.paused = false; render(); },
@@ -1448,6 +1487,7 @@
     else if (p[0] === 'feedback') S.feedback[p[1]] = v;
   }
   function refreshPreviews() {
+    var gs = document.getElementById('goal-sentence'); if (gs) { var s1 = goalSentence(); gs.textContent = s1; gs.hidden = !s1; }
     var a = document.getElementById('prompt-preview'); if (a) a.textContent = buildPrompt(S.ui.promptKind);
     var b = document.getElementById('feedback-preview'); if (b) b.textContent = feedbackText();
     var c = document.getElementById('offer-preview'); if (c) c.innerHTML = offerCardInner();
