@@ -1,7 +1,7 @@
 {
   "name": "Grove",
   "short_name": "Grove",
-  "description": "Make the thing you keep putting off. One small step at a time, one real reaction each week.",
+  "description": "The builder's journal. Make the thing you keep putting off. One small step a day, one real reaction a week.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

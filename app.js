@@ -603,7 +603,8 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.2';
+  var APP_VERSION = 'v0.7.3';
+  var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button></p>';
 
   /* The tour: the five things worth knowing first. */
@@ -635,8 +636,8 @@
     var pl = personLine();
     var head = '<header class="top"><span class="brand">' + LOGO + 'Grove</span><span class="small muted">' + esc(nice(today())) + '</span></header>';
     var intro = exampleBanner() + (hasAnyData() ? '' :
-      '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><p class="serif">Make the thing you keep putting off.</p>' +
-      '<p class="small muted">One small step each time you sit down to it. One real reaction each week.</p>' +
+      '<div class="notice stack"><span class="logo-big">' + LOGO + '</span><span class="label">Grove · the builder\'s journal</span><p class="serif">Make the thing you keep putting off.</p>' +
+      '<p class="small muted">One small step a day, one real reaction a week.</p>' +
       '<div class="row wrap"><button class="btn ghost small-btn" data-act="setupAgain">Set up my goal</button>' +
       '<button class="btn ghost small-btn" data-act="example">See an example</button></div></div>');
     var due = (!S.paused && reviewWeek() !== monday(today()))
@@ -825,8 +826,8 @@
     var goal = (S.project.what || '').trim();
     if (i === 0) {
       body = '<div class="tour-art"><span class="logo-big tour-logo">' + LOGO + '</span></div>' +
-        '<div class="stack tour-text"><h1>Make the thing you keep putting off</h1>' +
-        '<p class="muted">One small step each time you sit down to it. One real reaction from someone it is for, each week.</p></div>';
+        '<div class="stack tour-text"><span class="label">Grove · the builder\'s journal</span><h1>Make the thing you keep putting off</h1>' +
+        '<p class="muted">One small step a day, one real reaction a week.</p></div>';
       next = '<button class="btn" data-act="setupStep" data-arg="1">Set it up · two minutes</button>';
     } else if (i === 1) {
       var chips = GOAL_STARTERS.map(function (g) { return '<button data-act="goalStarter" data-arg="' + esc(g) + '">' + esc(g.trim()) + '…</button>'; }).join('');
@@ -1226,7 +1227,7 @@
     },
     invite: function () {
       var url = location.origin + location.pathname;
-      var text = 'I am trying Grove. It helps you make the thing you keep putting off, one small step at a time. Want to try it for a week?';
+      var text = 'I am trying Grove, the builder\'s journal. It helps you make the thing you keep putting off: one small step a day, one real reaction a week. Want to try it for a week?';
       /* The link goes inside the text: with a separate url, some apps show only a link preview and drop the sentence. */
       if (navigator.share) navigator.share({ text: text + '\n' + url }).catch(function () {});
       else copyText(text + ' ' + url, 'Invitation copied. Paste it into a message.');
@@ -1513,9 +1514,9 @@
   setInterval(function () {
     var d = S.days[today()];
     var working = S.screen === 'today' && d && d.startedAt && !d.out && !S.paused;
-    if (!working) { if (document.title !== 'Grove') document.title = 'Grove'; return; }
+    if (!working) { if (document.title !== IDLE_TITLE) document.title = IDLE_TITLE; return; }
     var t = timerOf(d);
-    if (!running(t)) { if (document.title !== 'Grove') document.title = 'Grove'; return; }
+    if (!running(t)) { if (document.title !== IDLE_TITLE) document.title = IDLE_TITLE; return; }
     var left = leftMs(t);
     document.title = (left > 0 ? msLeft(left) + (t.mode === 'rest' ? ' rest' : '') : (t.mode === 'rest' ? 'Rest is over' : 'Time is up')) + ' · Grove';
     var el = document.getElementById('t-left'); if (el) el.textContent = msLeft(left);
