@@ -34,7 +34,7 @@
      Ran's recording (same name, or change this line). The current file is a text-to-speech placeholder. */
   /* Guided audio recorded by Ran (2026-11-20). Grounding pause on the working page before you start; NSDR in Rest. */
   var TRACKS = {
-    grounding: { src: 'grounding.m4a', title: 'Grounding pause', intro: 'A short guided breath with Ran to settle in before you start.', note: 'About two and a half minutes, before you start.' },
+    grounding: { src: 'grounding.m4a', title: 'Settle in', intro: 'A short guided breath with Ran before you start, about two minutes.', note: 'About two and a half minutes, before you start.' },
     nsdr: { src: 'nsdr.m4a', title: 'NSDR · deep rest', intro: 'Guided deep rest with Ran, about nine minutes. Lie down or lean back.', note: 'About nine minutes. Lie down or lean back if you can.' }
   };
   var RESULTS = [['done', 'Did it'], ['part', 'Did part of it'], ['stuck', 'Got stuck'], ['changed', 'Changed the plan'], ['not', 'Did not get to it']];
@@ -343,6 +343,8 @@
   var DRAINS = ['Sleep', 'Worry', 'Too much on my plate', 'My body', 'Not sure'];
   function reframeCard(d) {
     if (!(d.energy && d.energy <= 2) || d.reframe === 'skipped') return '';
+    /* v0.7.10: folded by default, so a low day does not start with more questions (Shunuo: the flow felt heavier than the task). */
+    if (!d.reframe) return '<button class="link reframe-open" data-act="reframeExpand">Low energy today? A few questions, if you like</button>';
     if (d.reframe === 'done') {
       var bits = [d.drain, d.kind, d.easier].filter(has);
       return bits.length ? '<button class="notice reframe-done" data-act="reframeOpen"><span class="label">What you noticed</span><span class="small">' + esc(bits.join(' · ')) + '</span></button>' : '';
@@ -355,10 +357,11 @@
       '<div class="row" style="gap:14px"><button class="btn ghost small-btn" data-act="reframeDone">Done</button><button class="link" data-act="reframeSkip">Skip</button></div></div>';
   }
   function stepExamples(d) {
-    if (d.energy && d.energy <= 2) return ['Write three bullet points about it', 'Fix one small part, five minutes', 'Reread yesterday\'s note'];
-    if (d.energy === 3) return ['Work on one part for 25 minutes', 'Draft the next section', 'Write down the question I am stuck on'];
-    if (d.energy >= 4) return ['Show it to one person and ask one question', 'Make a rough version I can show', 'Ask someone who has done this before'];
-    return ['Work on one part for 25 minutes', 'Write three bullet points about it', 'Show it to one person'];
+    /* v0.7.10: plain ideas anyone can use, not only people making a product (Shunuo). */
+    if (d.energy && d.energy <= 2) return ['Just open it and look, five minutes', 'Do the smallest part', 'Write down what comes next'];
+    if (d.energy === 3) return ['Work on one part for 25 minutes', 'Finish one small piece', 'Write down where I am stuck'];
+    if (d.energy >= 4) return ['Do the part I keep avoiding', 'Finish a rough version', 'Show it to someone'];
+    return ['Work on one part for 25 minutes', 'Do the smallest part', 'Write down what comes next'];
   }
   function exampleBanner() {
     return S.ui.isExample ? '<div class="notice row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><span class="small">You are looking at an example.</span>' +
@@ -620,7 +623,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.9';
+  var APP_VERSION = 'v0.7.10';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
@@ -719,19 +722,20 @@
     } else {
       var energy = (!d.energy && !d.energySkipped)
         ? '<div class="stack"><h1>How much energy do you have today?</h1><p class="small muted">This sets how big today\'s step is. Low energy, smaller step.</p>' + energyWhy() + energyPicker() +
-          '<button class="btn ghost" data-act="setEnergy">That is my energy</button>' +
+          '<button class="btn" data-act="setEnergy">That is my energy</button>' +
           '<button class="link" style="align-self:center" data-act="skipEnergy">Skip</button></div>'
-        : '<button class="link" style="align-self:flex-start" data-act="redoEnergy">' + (d.energy ? 'Energy ' + d.energy + ' of 5, ' + LEVELS[d.energy - 1].toLowerCase() + ' · change' : 'Energy skipped · check now') + '</button>';
+        : '<button class="energy-row" data-act="redoEnergy">' + (d.energy ? '<span class="blob lv' + d.energy + ' eg-dot" aria-hidden="true"></span><span>Today\'s energy: <strong>' + esc(LEVELS[d.energy - 1]) + '</strong></span>' : '<span>Energy skipped</span>') + '<span class="small muted">change</span></button>';
       var planned = has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '';
       var size = sizeLine(d.energy);
       var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
       body = energy + restNote + reframeCard(d) +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
         '<span class="small muted">' + (has(S.project.what) ? 'What is one small thing that moves "' + esc(S.project.what) + '" forward today?' : 'What is one small thing you could do today?') + '</span>' +
+        '<div class="seg chips step-examples" aria-label="Ideas">' + stepExamples(d).map(function (x) { return '<button data-act="useExampleStep" data-arg="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
         (size ? '<span class="small muted">' + esc(size) + '</span>' : '') +
         (d.energy && d.energy <= 2 && has(d.step) && !d.shrunk && !S.ui.shrink ? '<button class="link" style="align-self:flex-start;padding:0" data-act="smaller">Show smaller versions</button>' : '') +
-        (!has(d.step) ? '<div class="seg chips step-examples" aria-label="Examples">' + stepExamples(d).map(function (x) { return '<button data-act="useExampleStep" data-arg="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' : '') + '</div></div>' +
+        '</div></div>' +
         shrinkPanel(d) +
         '<button class="btn" data-act="startStep">Start my step</button>' +
         '<div class="step-links">' +
@@ -838,9 +842,23 @@
   ];
   var SETUP_STEPS = 3;
   /* Setup screen 1 (v0.7.4): three ways an idea stalls, so people recognise themselves. One tap, optional. */
-  var FIT_OPTIONS = [['start', 'An idea I keep not starting'], ['polish', 'I keep polishing and never show it'], ['stop', 'I start strong, then stop']];
+  var FIT_OPTIONS = [['big', 'It feels too big to start'], ['many', 'Too many ideas to pick one'], ['stop', 'I start strong, then stop'], ['polish', 'I keep polishing and never show it']]; /* v0.7.10: Shunuo's two added; 'start' retired */
   /* Setup screen 2: the "so that" of a user story, in the person's own words (v0.7.5; no ready-made options).
      Kept apart from the Growth Map's "Why does this matter to you?" (project.why). */
+  /* v0.7.10: break the stretch into week-sized goals (Shunuo). Up to four lines; 8 weeks go in pairs, 12 in threes.
+     On finishing setup each line becomes that week's goal in This Week, unless one is already written. */
+  function weekSlots(n) {
+    n = n || 4; var per = n <= 4 ? 1 : Math.ceil(n / 4), out = [];
+    for (var a = 1; a <= n; a += per) { var b = Math.min(n, a + per - 1); out.push({ label: a === b ? 'Week ' + a : 'Weeks ' + a + '–' + b, from: a, to: b }); }
+    return out;
+  }
+  function applyWeekGoals() {
+    var start = monday(today());
+    weekSlots(S.project.weeks || 4).forEach(function (sl, n) {
+      var g = (S.project['wg' + n] || '').trim(); if (!g) return;
+      for (var k = sl.from; k <= sl.to; k++) { var w = W(addDays(start, 7 * (k - 1))); if (!has(w.question)) w.question = g; }
+    });
+  }
   function goalSentence() {
     var g = (S.project.what || '').trim().replace(/[.\s]+$/, '');
     var w = (S.project.soThat || '').trim().replace(/^so that\s+/i, '').replace(/[.\s]+$/, '');
@@ -890,7 +908,8 @@
       var wchips = wopts.map(function (n) { return '<button class="' + (weeks === n ? 'on' : '') + '" aria-pressed="' + (weeks === n) + '" data-act="setWeeks" data-arg="' + n + '">' + n + ' weeks</button>'; }).join('');
       body = '<div class="stack tour-text"><h1>Plan it</h1></div>' +
         '<div class="stack" style="gap:10px"><span class="label">How long will you give it?</span><div class="seg">' + wchips + '</div></div>' +
-        field('By the end of ' + weeks + ' weeks, what would you like to have?', 'project.periodGoal', S.project.periodGoal, 'e.g. The site is live and five people have seen it', 2) +
+        '<div class="stack" style="gap:10px"><span class="label">Roughly, what would each week be? (optional)</span>' +
+        weekSlots(weeks).map(function (sl, n) { return field(sl.label, 'project.wg' + n, S.project['wg' + n], n === 0 ? 'e.g. Tidy the kitchen' : '', 1); }).join('') + '</div>' +
         check('Share anonymous weekly counts, so Ran can see if Grove works (no names, no notes)', 'feedback.shareCounts', S.feedback.shareCounts !== false);
       next = '<button class="btn" data-act="setupFinish">Finish setup</button>';
     }
@@ -1372,10 +1391,11 @@
     drain: function (arg) { var d = D(); d.drain = d.drain === arg ? '' : arg; render(); },
     reframeDone: function () { D().reframe = 'done'; render(); },
     reframeSkip: function () { D().reframe = 'skipped'; render(); },
-    reframeOpen: function () { D().reframe = ''; render(); },
+    reframeOpen: function () { D().reframe = 'open'; render(); },
+    reframeExpand: function () { D().reframe = 'open'; render(); },
     useExampleStep: function (arg) { var d = D(); d.step = arg; render(); var el = document.getElementById('step-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } },
     setupAgain: function () { S.ui.setupIdx = 0; go('setup'); },
-    setupFinish: function () { S.ui.setupFinish = true; render(); },
+    setupFinish: function () { applyWeekGoals(); S.ui.setupFinish = true; render(); },
     setupStep: function (arg) { S.ui.setupFinish = false; S.ui.setupIdx = Math.min(Math.max(Number(arg) || 0, 0), SETUP_STEPS - 1); render(); },
     setWeeks: function (arg) { S.project.weeks = Number(arg); render(); },
     setupDone: function (arg) { S.ui.setupDone = true; S.ui.toured = true; S.ui.setupIdx = 0; S.ui.setupFinish = false; go('today'); if (arg === 'later') toast('Grove will be here when you are ready.'); },
@@ -1540,7 +1560,7 @@
   /* v0.7.7: actions that change something in place keep the page where it is, instead of jumping to the top. */
   var KEEP_SCROLL = { timerOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
     moreTime: 1, customToggle: 1, setCustom: 1, nextLine: 1, pauseOpen: 1, pauseClose: 1, pauseToggle: 1, reachToggle: 1,
-    result: 1, setFit: 1, setWeeks: 1, goalStarter: 1, useExampleStep: 1, smaller: 1, editStep: 1, useQuestion: 1 };
+    result: 1, reframeExpand: 1, setFit: 1, setWeeks: 1, goalStarter: 1, useExampleStep: 1, smaller: 1, editStep: 1, useQuestion: 1 };
   var keepScroll = false;
   app.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]');
