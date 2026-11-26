@@ -1,0 +1,21 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Grove//Daily reminder//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:grove-daily-1330@randing-create.github.io
+DTSTAMP:20261126T000000Z
+DTSTART:20261126T133000
+DURATION:PT10M
+RRULE:FREQ=DAILY
+SUMMARY:Grove · one small step
+DESCRIPTION:Open Grove and check in: https://randing-create.github.io/grove/
+URL:https://randing-create.github.io/grove/
+BEGIN:VALARM
+TRIGGER:PT0M
+ACTION:DISPLAY
+DESCRIPTION:Grove · one small step
+END:VALARM
+END:VEVENT
+END:VCALENDAR

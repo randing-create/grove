@@ -335,7 +335,7 @@
     return cur;
   }
   function lastPerson() {
-    var keys = Object.keys(S.days).filter(function (k) { return S.days[k].person && S.days[k].out; }).sort();
+    var keys = Object.keys(S.days).filter(function (k) { return S.days[k].person; }).sort();
     return keys.length ? keys[keys.length - 1] : '';
   }
   /* Low energy (1-2): a few questions to look at it differently before choosing the step.
@@ -373,6 +373,13 @@
     }
     if (who) return { text: 'This week: a reaction from ' + who + '. Not yet.', warn: true };
     return { text: 'This week: one reaction from someone else. Not yet. Tap to pick who.', warn: true };
+  }
+  /* v0.7.7: Reach is marked in This Week, not on every daily check-out (Ran: not needed every day). */
+  function reachButton() {
+    var d = S.days[today()];
+    if (d && d.person) return '<div class="row" style="gap:10px;align-items:center"><span class="small">✓ Marked today.</span><button class="link" data-act="reachToggle">Undo</button></div>';
+    return '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="reachToggle">Someone reacted</button>' +
+      '<span class="small muted">A reply, a question, even a no. To the idea, a sketch or the real thing.</span>';
   }
   function hasAnyData() {
     return has(S.project.what) || Object.keys(S.days).some(function (k) { return S.days[k].out || has(S.days[k].step) || S.days[k].energy; }) ||
@@ -431,25 +438,16 @@
     lines.push('Suggest, don\'t decide for me. If something is unclear, ask me one question first.');
     return lines.join('\n');
   }
-  /* v0.7.6: a small daily reminder. Grove makes a calendar file on the phone; nothing is sent anywhere. */
-  function remindRow() {
-    if (!S.ui.remindOpen) return '<button class="link remind-link" data-act="remindOpen">' + svg('bell', 18) + '<span>' + (S.ui.remindAt ? 'Daily reminder at ' + esc(S.ui.remindAt) + ' · change' : 'Remind me tomorrow') + '</span></button>';
-    return '<div class="card stack remind-card"><label class="label" for="remind-time">Remind me each day at</label>' +
-      '<div class="row" style="gap:10px;align-items:center"><input id="remind-time" class="remind-time" type="time" value="' + esc(S.ui.remindAt || '09:00') + '">' +
-      '<button class="btn ghost small-btn" data-act="remindAdd">Add to calendar</button></div>' +
-      '<span class="small muted">It goes into your own calendar and repeats each day. Delete it there any time.</span></div>';
-  }
-  function icsFile(hhmm) {
-    var p = (hhmm || '09:00').split(':'), t = new Date(); t.setDate(t.getDate() + 1); t.setHours(Number(p[0]) || 9, Number(p[1]) || 0, 0, 0);
-    var two = function (n) { return String(n).padStart(2, '0'); };
-    var local = t.getFullYear() + two(t.getMonth() + 1) + two(t.getDate()) + 'T' + two(t.getHours()) + two(t.getMinutes()) + '00';
-    var now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-    var url = 'https://randing-create.github.io/grove/';
-    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Grove//Daily reminder//EN', 'BEGIN:VEVENT',
-      'UID:grove-daily-' + Date.now() + '@grove', 'DTSTAMP:' + now, 'DTSTART:' + local, 'DURATION:PT10M', 'RRULE:FREQ=DAILY',
-      'SUMMARY:Grove · one small step', 'DESCRIPTION:Open Grove and check in: ' + url, 'URL:' + url,
-      'BEGIN:VALARM', 'TRIGGER:PT0M', 'ACTION:DISPLAY', 'DESCRIPTION:Grove · one small step', 'END:VALARM',
-      'END:VEVENT', 'END:VCALENDAR'].join('\r\n') + '\r\n';
+  /* v0.7.7: a daily calendar reminder next to tomorrow's step. Opens a ready-made calendar file (app/r/HHMM.ics,
+     every half hour from 6:00 to 22:30) in the browser, which offers to add it. Nothing about the person is sent. */
+  function remindTimes() { var out = []; for (var h = 6; h <= 22; h++) { out.push(String(h).padStart(2, '0') + ':00'); out.push(String(h).padStart(2, '0') + ':30'); } return out; }
+  function remindBlock() {
+    var at = S.ui.remindAt && remindTimes().indexOf(S.ui.remindAt) >= 0 ? S.ui.remindAt : '09:00';
+    return '<div class="stack remind" style="gap:8px"><span class="label">' + svg('bell', 16) + ' Remind me each day</span>' +
+      '<div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><select id="remind-time" class="remind-time" aria-label="Reminder time">' +
+      remindTimes().map(function (t) { return '<option' + (t === at ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+      '<a id="remind-link" class="btn ghost small-btn" href="r/' + at.replace(':', '') + '.ics" target="_blank" rel="noopener" data-act="remindSet">Add to calendar</a></div>' +
+      '<span class="small muted">' + (S.ui.remindAt ? 'You added one for ' + esc(S.ui.remindAt) + '. ' : '') + 'Your calendar asks to add it. It repeats each day; delete it there any time.</span></div>';
   }
   function copyText(text, okMsg) {
     var done = function () { toast(okMsg || 'Copied.'); };
@@ -556,7 +554,7 @@
   function ringStats(recs) {
     return { shown: recs.filter(function (r) { return r.startedAt || r.out || r.rest; }).length, target: 7,
       learn: recs.filter(function (r) { return r.out && !r.rest && (has(r.happened) || has(r.changes)); }).length, learnTarget: 3,
-      reach: recs.filter(function (r) { return r.out && r.person; }).length };
+      reach: recs.filter(function (r) { return r.person; }).length };
   }
   function statsFor(wk) { return ringStats(weekDays(wk).map(function (k) { return S.days[k]; }).filter(Boolean)); }
   function weekRing(st, size) {
@@ -632,7 +630,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.6';
+  var APP_VERSION = 'v0.7.7';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
@@ -699,7 +697,7 @@
       body = stepBlock + lineCard() + (isRest ? '' : pausePanel('grounding')) +
         '<div class="working-orb">' + timerBlob(d) + '</div>' +
         (timerShown(d) ? '<div id="work-time" class="working-time">' + timerBlock(d) + '</div>'
-          : '<div class="working-time"><button class="btn ghost small-btn" data-act="timerOpen">Use a timer</button><span class="small muted">Optional. You can just do the step and wrap up.</span></div>') +
+          : '<div class="working-time"><button class="btn ghost small-btn" data-act="timerOpen">Use a timer</button></div>') +
         (isRest ? pausePanel('nsdr') + restIdeas() : '') +
         field('Notice something? Jot it down', 'day.happened', d.happened, 'It will be waiting in your check-out.', 2) +
         '<div style="flex:1"></div>' +
@@ -725,7 +723,6 @@
         (has(d.happened) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What happened</span><p>' + esc(d.happened) + '</p></div>' : '') +
         (has(d.changes) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What it changes</span><p>' + esc(d.changes) + '</p></div>' : '') +
         (has(tomorrow) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">Tomorrow</span><p>' + esc(tomorrow) + '</p></div>' : '') +
-        remindRow() +
         (parse(today()).getDay() === 0 ? '<button class="btn" data-act="go" data-arg="review">Review this week</button>' : '') +
         '<button class="btn ghost" data-act="go" data-arg="week">Open This Week</button>' +
         '<button class="link" data-act="reopen">Change today\'s entry</button></div>';
@@ -747,11 +744,9 @@
         (!has(d.step) ? '<div class="seg chips step-examples" aria-label="Examples">' + stepExamples(d).map(function (x) { return '<button data-act="useExampleStep" data-arg="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' : '') + '</div></div>' +
         shrinkPanel(d) +
         '<button class="btn" data-act="startStep">Start my step</button>' +
-        '<div class="step-links"><span class="small muted">Or:</span>' +
+        '<div class="step-links">' +
         '<button class="link" data-act="smaller">Make it smaller</button>' +
-        '<button class="link" data-act="moveStep">Move to tomorrow</button>' +
-        '<button class="link" data-act="rest">Rest today</button>' +
-        '<button class="link" data-act="wrapUp">Just record today</button></div>';
+        '<button class="link" data-act="rest">Rest today</button></div>';
     }
     return '<section class="screen">' + head + intro + due + yNote + weekLine + body + FOOT + '</section>' + tabs('today');
   };
@@ -794,7 +789,7 @@
     pauseAudio.addEventListener('loadedmetadata', updatePause);
     pauseAudio.addEventListener('play', updatePause);
     pauseAudio.addEventListener('pause', updatePause);
-    pauseAudio.addEventListener('ended', function () { this.currentTime = 0; S.ui.pauseEnded = true; if (S.ui.pause) render(); });
+    pauseAudio.addEventListener('ended', function () { this.currentTime = 0; S.ui.pauseEnded = true; if (S.ui.pause) { keepScroll = true; render(); keepScroll = false; } });
     pauseAudio.addEventListener('error', function () { S.ui.pause = ''; if (S.screen === 'today') render(); toast('The audio could not load. You can go on without it.'); });
     return pauseAudio;
   }
@@ -1031,9 +1026,8 @@
       '<h1>One thing I learned</h1>' + summary + results + instead +
       field('What actually happened?', 'day.happened', d.happened, 'What you saw or heard, in plain words.', 3) +
       field('What will you do differently next time?', 'day.changes', d.changes, 'One line is enough.', 2) +
-      check('Someone else reacted to it today', 'day.person', d.person) +
-      '<p class="small muted" style="margin-top:-12px">A reply, a question, even a no. Even if you are making it for yourself, one outside look helps.</p>' +
       field((date !== today() ? 'Step for ' + nice(tm) : 'Tomorrow\'s step') + ' (optional)', 'plan.' + tm, planFor(tm).step, 'Leave it empty if you do not know yet.', 2) +
+      (date === today() ? remindBlock() : '') +
       '<div style="flex:1"></div>' +
       '<button class="btn" data-act="saveCheckout">' + (date !== today() ? 'Save this day' : (d.out ? 'Save changes' : 'Save today')) + '</button></section>';
   };
@@ -1073,7 +1067,7 @@
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
       field('Who could react to it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
       '<p class="small muted" style="margin-top:-12px">Not sure who? Someone you already know who has this problem is enough. <button class="link" style="padding:0;min-height:0;font-size:inherit" data-act="copyAsk">Copy a message to send them</button></p>' +
-      (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' : '') +
+      (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' + reachButton() : '') +
       '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
       (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
       '</div><div class="g g2">' +
@@ -1411,15 +1405,8 @@
       d.step = d.step.trim(); d.ready = true; S.ui.shrink = false;
       d.startedAt = new Date().toISOString(); d.timer = null; S.ui.timerDone = false; render();
     },
-    remindOpen: function () { S.ui.remindOpen = true; render(); },
-    remindAdd: function () {
-      var el = document.getElementById('remind-time'), v = (el && el.value) || '09:00';
-      S.ui.remindAt = v; S.ui.remindOpen = false; save();
-      var a = document.createElement('a');
-      a.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsFile(v));
-      a.download = 'grove-reminder.ics'; document.body.appendChild(a); a.click(); a.remove();
-      render(); toast('Open the file to add it to your calendar.');
-    },
+    reachToggle: function () { var d = D(); d.person = !d.person; render(); if (d.person) toast('Reach for this week. Nice.'); },
+    remindSet: function () { var el = document.getElementById('remind-time'); if (el) { S.ui.remindAt = el.value; save(); } },
     timerOpen: function () { D().timerOn = true; render(); },
     timerStart: function () { var d = D(), t = timerOf(d); t.end = new Date(Date.now() + leftMs(t)).toISOString(); S.ui.timerDone = false; S.ui.custom = false; render(); },
     timerPause: function () { var t = timerOf(D()); t.left = Math.max(0, leftMs(t)); t.end = ''; render(); },
@@ -1550,10 +1537,16 @@
     var c = document.getElementById('offer-preview'); if (c) c.innerHTML = offerCardInner();
   }
 
+  /* v0.7.7: actions that change something in place keep the page where it is, instead of jumping to the top. */
+  var KEEP_SCROLL = { timerOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
+    moreTime: 1, customToggle: 1, setCustom: 1, nextLine: 1, pauseOpen: 1, pauseClose: 1, pauseToggle: 1, remindSet: 1, reachToggle: 1,
+    result: 1, setFit: 1, setWeeks: 1, goalStarter: 1, useExampleStep: 1, smaller: 1, editStep: 1, useQuestion: 1 };
+  var keepScroll = false;
   app.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]');
     if (!el || !acts[el.dataset.act]) return;
-    acts[el.dataset.act](el.dataset.arg, el);
+    keepScroll = !!KEEP_SCROLL[el.dataset.act];
+    try { acts[el.dataset.act](el.dataset.arg, el); } finally { keepScroll = false; }
   });
   app.addEventListener('input', function (e) {
     if (e.target.id === 'energy-range') {
@@ -1568,6 +1561,7 @@
     setBind(b, e.target.value); save(); refreshPreviews();
   });
   app.addEventListener('change', function (e) {
+    if (e.target.id === 'remind-time') { var rl = document.getElementById('remind-link'); if (rl) rl.setAttribute('href', 'r/' + e.target.value.replace(':', '') + '.ics'); return; }
     var t = e.target;
     if (t.dataset && t.dataset.check) { setBind(t.dataset.check, t.checked); save(); refreshPreviews(); return; }
     if (t.id === 'import-file' && t.files && t.files[0]) {
@@ -1596,6 +1590,7 @@
   });
 
   function render() {
+    var y = window.scrollY;
     applyTheme();
     /* v0.7.6: the background takes a soft tint from today's energy (Ran picked option B, 2026-11-26). */
     var td = S.days[today()], en = td && td.energy;
@@ -1604,7 +1599,7 @@
     app.innerHTML = fn();
     Array.prototype.forEach.call(app.querySelectorAll('textarea'), autosize);
     save();
-    window.scrollTo(0, 0);
+    if (keepScroll) window.scrollTo(0, y); else window.scrollTo(0, 0);
   }
 
   render();
