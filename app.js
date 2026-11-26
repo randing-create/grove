@@ -620,11 +620,11 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.8';
+  var APP_VERSION = 'v0.7.9';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
-  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + '<br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button> · <button class="link foot-link" data-act="community">Community</button></p>';
+  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + '<br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openSettings">Settings</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button> · <button class="link foot-link" data-act="community">Community</button></p>';
 
   /* The tour: the five things worth knowing first. */
   var TOUR = [
@@ -1016,6 +1016,9 @@
       '<h1>One thing I learned</h1>' + summary + results + instead +
       field('What actually happened?', 'day.happened', d.happened, 'What you saw or heard, in plain words.', 3) +
       field('What will you do differently next time?', 'day.changes', d.changes, 'One line is enough.', 2) +
+      /* v0.7.9: a quiet Reach link, only until this week has one (Ran: half daily, half weekly). */
+      (date === today() ? (d.person ? '<p class="small muted reach-mark">✓ Someone reacted. Reach for this week. <button class="link" data-act="reachToggle">Undo</button></p>'
+        : (!statsFor(monday(today())).reach ? '<button class="link reach-mark" data-act="reachToggle">Someone reacted this week? Mark it</button>' : '')) : '') +
       field((date !== today() ? 'Step for ' + nice(tm) : 'Tomorrow\'s step') + ' (optional)', 'plan.' + tm, planFor(tm).step, 'Leave it empty if you do not know yet.', 2) +
       (date === today() ? '<p class="small muted remind-soon">' + svg('bell', 16) + ' Daily reminders · coming soon</p>' : '') +
       '<div style="flex:1"></div>' +
@@ -1072,15 +1075,20 @@
       field('Who is it for? One real person is best.', 'project.who', S.project.who, '', 2) + '</div>' +
       '</div><div class="g g3">' +
       '<div class="section"><span class="brand">Growth Rings</span>' + ringList + '</div>' +
-      '<div class="section"><span class="brand">Share and feedback</span>' +
-      '<p class="small muted">Grove has no server. Nothing you write is sent anywhere unless you choose to share it.</p>' +
-      '<div class="row wrap"><button class="btn ghost small-btn" data-act="invite">Invite a friend</button>' +
-      '<button class="btn ghost small-btn" data-act="go" data-arg="feedback">Send feedback</button></div></div>' +
-      '<div class="section"><span class="brand">Appearance</span><div class="seg" role="group" aria-label="Appearance">' +
+      FOOT + '</div></div></section>' + tabs('week');
+  };
+
+  /* v0.7.9: settings moved out of This Week into their own page, reached from the footer (Ran). */
+  screens.settings = function () {
+    var dark = S.ui.theme === 'dark';
+    return '<section class="screen pad-bottom">' +
+      '<header class="top">' + backBtn(S.ui.settingsFrom || 'today') + '<span class="small muted">Settings</span></header>' +
+      '<h1>Settings</h1>' +
+      '<div class="section stack"><span class="brand">Appearance</span><div class="seg" role="group" aria-label="Appearance">' +
       '<button class="' + (!dark ? 'on' : '') + '" aria-pressed="' + !dark + '" data-act="theme" data-arg="light">Light</button>' +
       '<button class="' + (dark ? 'on' : '') + '" aria-pressed="' + dark + '" data-act="theme" data-arg="dark">Dark</button></div></div>' +
-      '<div class="section"><span class="brand">Your data</span>' +
-      '<p class="small muted">Saved in this browser only. Export to move it to another device, then import it there.</p>' +
+      '<div class="section stack"><span class="brand">Your data</span>' +
+      '<p class="small muted">What you write is saved in this browser only. Only feedback you send and, if you allow it, anonymous weekly counts leave this device. Export to move your notes to another device, then import them there.</p>' +
       check('Share anonymous weekly counts with Ran (no names, no notes)', 'feedback.shareCounts', S.feedback.shareCounts !== false) +
       confirmBox('example', 'This replaces what you have written so far. Load the example anyway?') +
       confirmBox('clear', 'This deletes everything saved in this browser. It cannot be undone.') +
@@ -1090,7 +1098,9 @@
       '<button class="btn ghost small-btn" data-act="example">Load example</button>' +
       '<button class="btn ghost small-btn" data-act="clear">Clear everything</button></div>' +
       '<input id="import-file" type="file" accept="application/json,.json" class="sr" tabindex="-1" aria-label="Import a Grove export file"></div>' +
-      FOOT + '</div></div></section>' + tabs('week');
+      '<div class="section stack"><span class="brand">Invite a friend</span>' +
+      '<div class="row wrap"><button class="btn ghost small-btn" data-act="invite">Invite a friend</button></div></div>' +
+      FOOT + '</section>';
   };
 
   screens.prompt = function () {
@@ -1374,6 +1384,7 @@
       S.project.what = was ? arg + cur.slice(was.trim().length).trim() : (cur ? arg + cur.charAt(0).toLowerCase() + cur.slice(1) : arg);
       render(); var el = document.getElementById('goal-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     },
+    openSettings: function () { S.ui.settingsFrom = ['today', 'week', 'map'].indexOf(S.screen) >= 0 ? S.screen : 'today'; go('settings'); },
     openFeedback: function () { S.ui.feedbackFrom = ['today', 'week', 'map'].indexOf(S.screen) >= 0 ? S.screen : 'week'; S.ui.askRan = false; go('feedback'); },
     dismissAsk: function () { S.ui.askRan = false; render(); },
     community: function () {

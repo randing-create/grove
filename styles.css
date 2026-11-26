@@ -357,3 +357,4 @@ body { background: transparent; }
 nav.tabs { background: color-mix(in srgb, var(--ground) 72%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 .remind-soon { display: inline-flex; align-items: center; gap: 6px; margin-top: -8px; }
+.reach-mark { align-self: flex-start; margin-top: -8px; }
