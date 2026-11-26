@@ -8,11 +8,14 @@
 
   var LEVELS = ['Empty', 'Low', 'Okay', 'Good', 'High'];
   var DECISIONS = [['continue', 'Continue'], ['adjust', 'Adjust'], ['pause', 'Pause']];
+  /* v0.7.11: lines for the moment you are stuck in, for anyone putting something off, not only people making a product.
+     Our own plain words, plus a few short quotes with checked sources ("text|who"). */
   var LINES = {
-    heavy: { title: 'When the day feels heavy', lines: ['I can start with the energy I have.', 'I can feel unsure and still take one small step.', 'What would make the next ten minutes more doable?'] },
-    testing: { title: 'When I\'m testing an idea', lines: ['I can care about this idea and stay curious about what happens.', 'I\'m allowed to learn something I didn\'t expect.', 'One honest observation gives me something to work with.'] },
-    showing: { title: 'When I\'m ready to show the work', lines: ['I can let one real person see this version.', 'I can share it simply and leave room for a response.', 'I can ask for help with one specific thing.'] },
-    inviting: { title: 'When I\'m inviting or following up', lines: ['I can make a clear invitation and let the other person choose.', 'I can follow up once, warmly and plainly.', 'I can hear a no and let it teach me something.'] }
+    heavy: ['Five minutes still counts.', 'Tired is allowed. Small is allowed.', 'Do less today, but do something.'],
+    starting: ['You don\'t have to feel ready. Just open it.', 'The hard part is the first two minutes.', 'Do the part you can do today.', 'The best way out is always through.|Robert Frost'],
+    back: ['Missing a day is normal. Coming back is what counts.', 'Today is a fresh start, not a catch-up.', 'Pick it up where you left it.'],
+    polishing: ['Finish this version. The next one can be better.', 'Rough and done is enough for today.', 'Real artists ship.|Steve Jobs'],
+    showing: ['Show it before you feel ready.', 'A no tells you something. It is not a verdict.', 'If you are not embarrassed by the first version of your product, you\'ve launched too late.|Reid Hoffman']
   };
 
   var ICON = {
@@ -399,11 +402,17 @@
     return 'Good energy: is there a step you have been saving for a day like this, like watching someone use it?';
   }
   function linesFor(d) {
-    var step = d.step || '';
+    var step = d.step || '', y = addDays(today(), -1), yr = S.days[y];
+    var missed = (yr && (has(yr.step) || yr.startedAt) && !yr.out) || (!yr && has(planFor(y).step));
     var kind = d.energy && d.energy <= 2 ? 'heavy'
-      : (/invite|follow|price|pay|offer/i.test(step) ? 'inviting'
-        : (/send|show|share|ask|post|call|message|email|meet|interview/i.test(step) ? 'showing' : 'testing'));
-    return LINES[kind].lines;
+      : (missed ? 'back'
+        : (/send|show|share|ask|post|call|message|email|meet|interview|invite|follow|price|offer/i.test(step) ? 'showing'
+          : (d.energy >= 4 ? 'polishing' : 'starting')));
+    return LINES[kind];
+  }
+  function lineHtml(line) {
+    var p = String(line || '').split('|');
+    return esc(p[0]) + (p[1] ? '<span class="line-by small muted">' + esc(p[1]) + '</span>' : '');
   }
   /* Picked once a day and kept, so the same line is there when the person comes back. */
   function lineFor(d) {
@@ -623,7 +632,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.10';
+  var APP_VERSION = 'v0.7.11';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
@@ -676,7 +685,7 @@
     var yOpen = openYesterday();
     var yNote = yOpen ? '<div class="notice stack"><p>Yesterday\'s step was started but not wrapped up.</p><div class="row"><button class="btn ghost small-btn" data-act="wrapUp" data-arg="' + yOpen + '">Wrap up yesterday</button></div></div>' : '';
     var lineCard = function () {
-      return '<div class="mantra"><span class="label">A line for today</span><span class="serif">' + esc(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>';
+      return '<div class="mantra"><span class="label">A line for today</span><span class="serif">' + lineHtml(lineFor(d)) + '</span><button class="mantra-next" data-act="nextLine" aria-label="Show another line">' + svg('refresh', 20) + '</button></div>';
     };
 
     if (!S.paused && !d.out && d.startedAt) {
@@ -728,7 +737,9 @@
       var planned = has(d.planned) && d.planned.trim() !== (d.step || '').trim() ? '<span class="small muted">Planned: ' + esc(d.planned) + '</span>' : '';
       var size = sizeLine(d.energy);
       var restNote = planFor(today()).rest && !has(d.step) ? '<p class="small muted">Today is marked as a rest day in your plan.</p>' : '';
-      body = energy + restNote + reframeCard(d) +
+      var movedNote = d.moved && !has(d.step) ? '<div class="notice stack"><p><strong>Moved to ' + esc(nice(addDays(today(), 1))) + ':</strong> ' + esc(d.movedStep || 'today\'s step') + '</p>' +
+        '<p class="small muted">Nothing else to do today. Or write a smaller step below.</p><div class="row"><button class="link" data-act="unmoveStep">Undo</button></div></div>' : '';
+      body = energy + restNote + movedNote + reframeCard(d) +
         '<div class="card"><div><label class="label" for="step-input">Today\'s step</label>' + planned +
         '<span class="small muted">' + (has(S.project.what) ? 'What is one small thing that moves "' + esc(S.project.what) + '" forward today?' : 'What is one small thing you could do today?') + '</span>' +
         '<div class="seg chips step-examples" aria-label="Ideas">' + stepExamples(d).map(function (x) { return '<button data-act="useExampleStep" data-arg="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' +
@@ -740,6 +751,7 @@
         '<button class="btn" data-act="startStep">Start my step</button>' +
         '<div class="step-links">' +
         '<button class="link" data-act="smaller">Make it smaller</button>' +
+        '<button class="link" data-act="moveStep">Move to tomorrow</button>' +
         '<button class="link" data-act="rest">Rest today</button></div>';
     }
     return '<section class="screen">' + head + intro + due + yNote + weekLine + body + FOOT + '</section>' + tabs('today');
@@ -1082,16 +1094,7 @@
       (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' + reachButton() : '') +
       '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
       (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
-      '</div><div class="g g2">' +
-      '<div class="section"><span class="brand">AI Tool Shed</span>' +
-      '<p class="small muted">Grove asks you a few questions, then builds a prompt from your answers for the AI you already use. More cards are inside each Growth Map step.</p>' +
-      promptCard('conversation', 'week') + promptCard('smaller', 'week') + '</div>' +
-      '<div class="section"><span class="brand">Offer card</span>' +
-      '<p class="small muted">One card that says who it is for, what changes and what to do next. Send it to a real person.</p>' +
-      '<div class="row"><button class="btn ghost small-btn" data-act="go" data-arg="offer">Make an offer card</button></div></div>' +
-      '<div class="section"><span class="brand">Project notes</span>' +
-      field('What are you working on?', 'project.what', S.project.what, 'A sentence is enough.', 2) +
-      field('Who is it for? One real person is best.', 'project.who', S.project.who, '', 2) + '</div>' +
+      /* v0.7.11: AI Tool Shed, Offer card and Project notes left This Week; they live in the Growth Map steps (Ran). */
       '</div><div class="g g3">' +
       '<div class="section"><span class="brand">Growth Rings</span>' + ringList + '</div>' +
       FOOT + '</div></div></section>' + tabs('week');
@@ -1493,8 +1496,14 @@
       if (!has(d.step)) return toast('There is no step to move.');
       var tm = addDays(today(), 1); var p = planFor(tm);
       p.step = has(p.step) ? p.step + ' / ' + d.step.trim() : d.step.trim();
-      planFor(today()).step = ''; d.step = ''; d.planned = ''; d.moved = true;
-      render(); toast('Moved to ' + nice(tm) + '.');
+      d.movedStep = d.step.trim(); planFor(today()).step = ''; d.step = ''; d.planned = ''; d.moved = true;
+      render();
+    },
+    /* v0.7.11: undo a move (Shunuo did not know where the step had gone). */
+    unmoveStep: function () {
+      var d = D(), tm = addDays(today(), 1), p = planFor(tm), m = d.movedStep || '';
+      if (m) { p.step = p.step === m ? '' : p.step.replace(' / ' + m, ''); d.step = m; }
+      d.moved = false; d.movedStep = ''; render();
     },
     rest: function () { var d = D(); d.rest = true; d.out = true; go('today'); },
     /* A rest day goes back to check-in. A checked-out day opens its check-out again, filled in, and stays done. */

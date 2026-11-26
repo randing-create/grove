@@ -363,3 +363,5 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 .energy-row .eg-dot { --s: 22px; flex: none; }
 .energy-row .muted { margin-left: auto; text-decoration: underline; }
 .reframe-open { align-self: flex-start; }
+.line-by { display: block; font-family: var(--sans); font-style: normal; margin-top: 6px; }
+.line-by::before { content: '— '; }
