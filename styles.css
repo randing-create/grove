@@ -332,3 +332,29 @@ details.why > summary::-webkit-details-marker { display: none; }
 /* Growth Map: entry to "Picture the day it works" */
 .card.map-ideal { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
 .card.map-ideal .chev { transform: rotate(-90deg); display: inline-flex; color: var(--muted, inherit); }
+
+/* v0.7.6: secondary choices under Start my step, and the Setup done card */
+.step-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 10px; }
+.step-links .link { font-size: 15px; }
+.setup-daily p { margin: 0; }
+.remind-link { display: inline-flex; align-items: center; gap: 6px; align-self: center; }
+.remind-card { align-self: stretch; text-align: left; }
+.remind-time { font: inherit; font-size: 17px; padding: 8px 10px; border: 1px solid var(--line, #d8d3c8); border-radius: 12px; background: transparent; color: inherit; }
+
+/* v0.7.6: background tinted by today's energy (low blue-lilac, mid green, high yellow-peach); cards a little translucent */
+:root { --wash1: rgba(217,231,108,.22); --wash2: rgba(211,237,214,.35); --ground-end: #F3EEE4; }
+:root[data-energy="low"]  { --wash1: rgba(143,182,218,.55); --wash2: rgba(201,184,240,.45); }
+:root[data-energy="mid"]  { --wash1: rgba(157,207,163,.55); --wash2: rgba(211,237,214,.7); }
+:root[data-energy="high"] { --wash1: rgba(249,220,60,.45);  --wash2: rgba(244,181,140,.45); }
+:root[data-theme="dark"] { --ground-end: #0E1311; }
+:root[data-theme="dark"][data-energy="low"]  { --wash1: rgba(143,182,218,.20); --wash2: rgba(201,184,240,.14); }
+:root[data-theme="dark"][data-energy="mid"], :root[data-theme="dark"][data-energy="none"] { --wash1: rgba(157,207,163,.18); --wash2: rgba(156,196,228,.10); }
+:root[data-theme="dark"][data-energy="high"] { --wash1: rgba(249,220,60,.14); --wash2: rgba(244,181,140,.12); }
+html { min-height: 100%; background:
+  radial-gradient(120% 60% at 20% 0%, var(--wash1) 0%, transparent 60%),
+  radial-gradient(90% 50% at 100% 35%, var(--wash2) 0%, transparent 65%),
+  linear-gradient(180deg, var(--ground) 0%, var(--ground-end) 100%) fixed; transition: background .6s ease; }
+body { background: transparent; }
+.card { background: color-mix(in srgb, var(--surface) 64%, transparent); border-color: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: 0 8px 30px rgba(60,70,50,.07); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+:root[data-theme="dark"] .card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.10); box-shadow: none; }
+nav.tabs { background: color-mix(in srgb, var(--ground) 72%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
