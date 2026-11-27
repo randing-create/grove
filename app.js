@@ -719,11 +719,12 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.8';
+  var APP_VERSION = 'v0.8.1';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
-  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + '<br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openSettings">Settings</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button> · <a class="link foot-link" href="https://randing-create.github.io/wal-academy-app/" target="_blank" rel="noopener">Academy</a></p>';
+  var ACADEMY_URL = 'https://randing-create.github.io/wal-academy-app/';
+  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + ' · <a class="link foot-link" href="' + ACADEMY_URL + '" target="_blank" rel="noopener">WoMen AI Lab Academy&nbsp;↗</a><br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openSettings">Settings</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button></p>';
 
   /* The tour: the five things worth knowing first. */
   var TOUR = [
@@ -1238,7 +1239,8 @@
       '<details open><summary class="small">What will be copied</summary><pre id="prompt-preview">' + esc(buildPrompt(kind)) + '</pre></details>' +
       '<div style="flex:1"></div>' +
       '<button class="btn" data-act="copyPrompt" data-arg="' + kind + '">Copy for my own AI</button>' +
-      '<p class="small muted" style="text-align:center">Paste it into the AI you use, then bring back what you want to keep.</p></section>';
+      '<p class="small muted" style="text-align:center">Paste it into the AI you use, then bring back what you want to keep.</p>' +
+      (kind === 'story' && S.ui.storyCopied ? '<p class="small" style="text-align:center"><a class="link" href="' + ACADEMY_URL + '#projects" target="_blank" rel="noopener">Post your update in the Academy\'s Projects&nbsp;↗</a></p>' : '') + '</section>';
   };
 
   screens.feedback = function () {
@@ -1431,11 +1433,13 @@
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
     },
     theme: function (arg) { S.ui.theme = arg === 'dark' ? 'dark' : 'light'; render(); },
-    openPrompt: function (arg) { var p = arg.split('|'); S.ui.promptKind = p[0]; S.ui.promptFrom = p[1]; go('prompt'); },
+    openPrompt: function (arg) { var p = arg.split('|'); S.ui.promptKind = p[0]; S.ui.promptFrom = p[1]; S.ui.storyCopied = false; go('prompt'); },
     copyPrompt: function (arg) {
       if (!promptFilled(arg)) return toast('Answer at least one question first, so the prompt is about you.');
       S.usage = S.usage || {}; S.usage.prompts = (S.usage.prompts || 0) + 1; save();
       copyText(buildPrompt(arg), 'Copied. Paste it into your own AI, then bring back what you want to keep.');
+      /* v0.8.1: after the progress prompt is copied, point to where the update can be posted. A plain link, nothing sent. */
+      if (arg === 'story' && !S.ui.storyCopied) { S.ui.storyCopied = true; keepScroll = true; render(); keepScroll = false; }
     },
     invite: function () {
       var url = location.origin + location.pathname;
@@ -1669,7 +1673,7 @@
     shareProgress: function () {
       var any = Object.keys(S.days).some(function (k) { var r = S.days[k]; return r.out && !r.rest && (has(r.happened) || has(r.changes)); });
       if (!any) return toast('Wrap up a few days with one line on what happened. Then Grove can turn them into an update to share.');
-      S.ui.promptKind = 'story'; S.ui.promptFrom = 'week'; go('prompt');
+      S.ui.promptKind = 'story'; S.ui.promptFrom = 'week'; S.ui.storyCopied = false; go('prompt');
     },
     logAll: function () { S.ui.logAll = !S.ui.logAll; render(); },
     mapAt: function (arg) { var i = Number(arg); S.project.mapStep = S.project.mapStep === i ? '' : i; save(); },
