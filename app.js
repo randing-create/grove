@@ -1,3 +1,4 @@
+/* Grove · © 2026 WoMen AI Lab. All rights reserved. Not licensed for reuse. */
 (function () {
   'use strict';
 
