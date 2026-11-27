@@ -395,3 +395,6 @@ textarea.plain { background: transparent; }
 :root[data-theme="dark"] .mantra { background: color-mix(in srgb, var(--lilac) 22%, transparent); color: var(--text); }
 :root[data-theme="dark"] .mantra .label, :root[data-theme="dark"] .mantra-next { color: var(--muted); }
 :root:not([data-theme="dark"]) nav.tabs button.on, :root[data-theme="dark"] nav.tabs button.on { background: transparent; }
+/* v0.8.2: days a week, seven small buttons in one row */
+.days-chips { flex-wrap: nowrap; gap: 6px; }
+.days-chips button { flex: 1 1 0; min-width: 0; padding: 0; }

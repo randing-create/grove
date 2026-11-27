@@ -554,7 +554,7 @@
     var wk = monday(today()), st = statsFor(wk), u = S.usage || {};
     var mapKeys = []; MAP.forEach(function (m) { mapKeys = mapKeys.concat(m.fields); });
     var mapDone = mapKeys.filter(function (k) { return has(fieldValue(k)); }).length;
-    return ['This week: Show up ' + st.shown + ' of 7, Learn ' + st.learn + ' of 3, Reach ' + st.reach + '.',
+    return ['This week: Show up ' + st.shown + ' of ' + st.target + ', Learn ' + st.learn + ' of ' + st.learnTarget + ', Reach ' + st.reach + '.',
       'Setup done: ' + (S.ui.setupDone ? 'yes' : 'no') + '. Weeks planned: ' + (S.project.weeks || '-') + '. Weekly goal written: ' + (has(W(wk).question) ? 'yes' : 'no') + '. Growth Rings saved: ' + S.rings.length + '.',
       'Growth Map answers: ' + mapDone + ' of ' + mapKeys.length + '. Prompts copied: ' + (u.prompts || 0) + '. Offer cards shared: ' + (u.offers || 0) + '.', 'Grove version: ' + APP_VERSION + '.'].join('\n');
   }
@@ -640,9 +640,18 @@
      outer Show up (you stop) = days you checked in: started a step, chose rest, or recorded the day; target 7;
      middle Learn (you polish) = days you checked out with at least one line written (not rest days); target 3;
      inner Reach (you hide) = a reaction from someone else; target 1. */
+  /* v0.8.2: how many days a week the person plans to show up (Nina). 7 unless they chose fewer. */
+  function perWeek() { var n = Number(S.project.perWeek); return n >= 1 && n <= 7 ? n : 7; }
+  function perWeekChips() {
+    var cur = perWeek();
+    return '<div class="stack" style="gap:8px"><span class="label">How many days a week?</span><div class="seg chips days-chips">' +
+      [1, 2, 3, 4, 5, 6, 7].map(function (n) { return '<button class="' + (n === cur ? 'on' : '') + '" aria-pressed="' + (n === cur) + '" data-act="setPerWeek" data-arg="' + n + '">' + n + '</button>'; }).join('') +
+      '</div><span class="small muted">The Show up ring fills at this number. A rest day counts as showing up.</span></div>';
+  }
   function ringStats(recs) {
-    return { shown: recs.filter(function (r) { return r.startedAt || r.out || r.rest; }).length, target: 7,
-      learn: recs.filter(function (r) { return r.out && !r.rest && (has(r.happened) || has(r.changes)); }).length, learnTarget: 3,
+    var per = perWeek();
+    return { shown: recs.filter(function (r) { return r.startedAt || r.out || r.rest; }).length, target: per,
+      learn: recs.filter(function (r) { return r.out && !r.rest && (has(r.happened) || has(r.changes)); }).length, learnTarget: Math.min(3, per),
       reach: recs.filter(function (r) { return r.person; }).length };
   }
   function statsFor(wk) { return ringStats(weekDays(wk).map(function (k) { return S.days[k]; }).filter(Boolean)); }
@@ -719,7 +728,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.8.1';
+  var APP_VERSION = 'v0.8.2';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
@@ -1020,6 +1029,7 @@
       var wchips = wopts.map(function (n) { return '<button class="' + (weeks === n ? 'on' : '') + '" aria-pressed="' + (weeks === n) + '" data-act="setWeeks" data-arg="' + n + '">' + n + ' weeks</button>'; }).join('');
       body = '<div class="stack tour-text"><h1>Plan it</h1></div>' +
         '<div class="stack" style="gap:10px"><span class="label">How long will you give it?</span><div class="seg">' + wchips + '</div></div>' +
+        perWeekChips() +
         '<div class="stack" style="gap:10px"><span class="label">Roughly, what would each week be? (optional)</span>' +
         weekSlots(weeks).map(function (sl, n) { return field(sl.label, 'project.wg' + n, S.project['wg' + n], n === 0 ? 'e.g. Tidy the kitchen' : '', 1); }).join('') + '</div>' +
         check('Share anonymous weekly counts, so Ran can see if Grove works (no names, no notes)', 'feedback.shareCounts', S.feedback.shareCounts !== false);
@@ -1185,7 +1195,7 @@
       '<button class="' + (isCur ? 'on' : '') + '" aria-pressed="' + isCur + '" data-act="showWeek" data-arg="' + cur + '">This week</button>' +
       '<button class="' + (!isCur ? 'on' : '') + '" aria-pressed="' + !isCur + '" data-act="showWeek" data-arg="' + addDays(cur, 7) + '">Plan next week</button></div>' +
       '<div class="cols"><div class="g g1">' +
-      (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' : '') +
+      (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' + perWeekChips() : '') +
       (has(S.project.periodGoal) ? field('Your ' + (S.project.weeks || 4) + '-week goal', 'project.periodGoal', S.project.periodGoal, 'What would you like to have by the end?', 2) : '') +
       field('This week\'s goal', 'week.question', w.question, 'A piece of the bigger goal: what would you like done or found out by Sunday?', 2) +
       (!has(w.question) ? '<button class="link map-nudge" style="margin-top:-12px" data-act="openMapAt">Need an idea? Each Growth Map step suggests a goal.</button>' : '') +
@@ -1525,6 +1535,7 @@
     setupFinish: function () { dropExample(); applyWeekGoals(); S.ui.setupFinish = true; render(); },
     setupStep: function (arg) { S.ui.setupFinish = false; S.ui.setupIdx = Math.min(Math.max(Number(arg) || 0, 0), SETUP_STEPS - 1); render(); },
     setWeeks: function (arg) { S.project.weeks = Number(arg); render(); },
+    setPerWeek: function (arg) { S.project.perWeek = Number(arg); render(); },
     setupDone: function (arg) { S.ui.setupDone = true; S.ui.toured = true; S.ui.setupIdx = 0; S.ui.setupFinish = false; go('today'); if (arg === 'later') toast('Grove will be here when you are ready.'); },
     goalStarter: function (arg) {
       var cur = (S.project.what || '').trim(), was = GOAL_STARTERS.filter(function (g) { return cur.indexOf(g.trim()) === 0; })[0];
@@ -1703,7 +1714,7 @@
   }
 
   /* v0.7.7: actions that change something in place keep the page where it is, instead of jumping to the top. */
-  var KEEP_SCROLL = { logAll: 1, timerOpen: 1, restOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
+  var KEEP_SCROLL = { setPerWeek: 1, logAll: 1, timerOpen: 1, restOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
     moreTime: 1, customToggle: 1, setCustom: 1, nextLine: 1, pauseOpen: 1, pauseClose: 1, pauseToggle: 1, reachToggle: 1,
     result: 1, reframeExpand: 1, setFit: 1, setWeeks: 1, goalStarter: 1, useExampleStep: 1, smaller: 1, editStep: 1, useQuestion: 1 };
   var keepScroll = false;
