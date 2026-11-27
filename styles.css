@@ -365,3 +365,6 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 .reframe-open { align-self: flex-start; }
 .line-by { display: block; font-family: var(--sans); font-style: normal; margin-top: 6px; }
 .line-by::before { content: '— '; }
+/* v0.7.12: smaller shape on the energy check-in, so "That is my energy" is on screen without scrolling (Shunuo) */
+.energy .blob-wrap { height: 180px; }
+.energy .blob.lv1 { --s: 58px; } .energy .blob.lv2 { --s: 86px; } .energy .blob.lv3 { --s: 114px; } .energy .blob.lv4 { --s: 142px; } .energy .blob.lv5 { --s: 170px; }

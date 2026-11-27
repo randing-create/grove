@@ -211,6 +211,35 @@
   /* Everyone goes through setup once, new or not (v0.7). It can be skipped, and opened again from the footer.
      The five-card tour stays under "How Grove works". */
   if (!S.ui.setupDone) { S.screen = 'setup'; S.ui.setupIdx = 0; S.ui.idealStep = 0; }
+  /* v0.7.12: clear leftovers from the example (every version of it). People who loaded it before v0.7 had no
+     example flag, so its Growth Map answers stayed and looked like hints (K, 2026-11-26). Only exact example text is cleared. */
+  var EXAMPLE_TEXTS = [
+    "A two-week try-out of Grove with one check-in call.",
+    "About 30 minutes a day.",
+    "An independent consultant who wants to turn what she knows into a small product.",
+    "An independent consultant, freelancer or creative with years of experience, who wants to turn what she knows into a small product.",
+    "At my desk at nine, coffee, phone in the other room",
+    "Birds outside, rested, a little excited to open it",
+    "Change the prototype myself and run my first user interview.",
+    "Every week one real person sees or tries her work, and she knows what to build or sell next.",
+    "Grove: a journal that helps women turn an idea into an offer they can test.",
+    "Grove: help women make the thing they keep putting off, one small step at a time.",
+    "I kept polishing my own idea instead of showing it to anyone. I want a tool that gets me out of that.",
+    "Independent professionals who want to turn what they know into a small product. This week, me.",
+    "One real person has tried it each week, and she knows what to build next.",
+    "Open the link, set this week's goal, and tell me after seven days what you would skip.",
+    "Open the link, write this week's question, and tell me after seven days what you would skip.",
+    "Recording a short demo, shoulders loose",
+    "Sent it to two builders, proud of something small",
+    "She has started on an idea she cares about. She keeps refining it or learning another tool. At the end of the week she still does not know how someone would use it.",
+    "She keeps polishing her idea and learning new tools. She tells herself it is not ready. It feels busy and stuck. Nobody else has seen it.",
+    "The WoMen AI Lab group, to builders who have something they can test this week.",
+    "Two weeks with Grove: a few minutes a day, one small step sized to your energy, and a short review at the end of each week.",
+    "WAL Studio: a founding journal that sizes each day's step to my energy.",
+    "Women solo founders. This week, me.",
+    "randing-create.github.io/grove"
+  ];
+  if (!S.ui.isExample) Object.keys(S.project).forEach(function (k) { if (EXAMPLE_TEXTS.indexOf(S.project[k]) >= 0) S.project[k] = ''; });
 
   function W(key) {
     if (!S.weeks[key]) S.weeks[key] = { question: '', sign: '', who: '', plan: {} };
@@ -250,7 +279,7 @@
   var CHIPS = { work: [5, 25, 45], rest: [5, 10, 15] };
   var REST_IDEAS = [
     ['Walk outside', 'A few minutes outdoors, without your phone if you can.'],
-    ['NSDR', 'Non-sleep deep rest. Ran\'s guided version is just below.'],
+    ['NSDR', 'Non-sleep deep rest. Ran\'s guided version is just above.'],
     ['Stretch', 'Neck, shoulders and back, slowly.'],
     ['Drink water', 'A glass of water, away from your desk.'],
     ['Look far away', 'Out of a window, at something in the distance.']
@@ -363,7 +392,7 @@
     /* v0.7.10: plain ideas anyone can use, not only people making a product (Shunuo). */
     if (d.energy && d.energy <= 2) return ['Just open it and look, five minutes', 'Do the smallest part', 'Write down what comes next'];
     if (d.energy === 3) return ['Work on one part for 25 minutes', 'Finish one small piece', 'Write down where I am stuck'];
-    if (d.energy >= 4) return ['Do the part I keep avoiding', 'Finish a rough version', 'Show it to someone'];
+    if (d.energy >= 4) return ['Do the part that matters most', 'Finish a rough version', 'Show it to someone'];
     return ['Work on one part for 25 minutes', 'Do the smallest part', 'Write down what comes next'];
   }
   function exampleBanner() {
@@ -377,8 +406,8 @@
       var n = daysBetween(last, today());
       return { text: 'Reach: someone else reacted ' + (n === 0 ? 'today' : (n === 1 ? 'yesterday' : n + ' days ago')) + '.', warn: false };
     }
-    if (who) return { text: 'This week: a reaction from ' + who + '. Not yet.', warn: true };
-    return { text: 'This week: one reaction from someone else. Not yet. Tap to pick who.', warn: true };
+    if (who) return { text: 'This week: a reaction from ' + who + ', when you are ready.', warn: false };
+    return { text: 'This week: one reaction from someone else. Tap to pick who.', warn: false };
   }
   /* v0.7.7: Reach is marked in This Week, not on every daily check-out (Ran: not needed every day). */
   function reachButton() {
@@ -397,7 +426,7 @@
   }
   function sizeLine(energy) {
     if (!energy) return '';
-    if (energy <= 2) return 'Low energy: what is the smallest step that still tells you something? Five minutes is enough.';
+    if (energy <= 2) return 'Low energy: pick the smallest step. Five minutes is enough.';
     if (energy === 3) return 'Steady energy: what could you do in about half an hour?';
     return 'Good energy: is there a step you have been saving for a day like this, like watching someone use it?';
   }
@@ -632,7 +661,7 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.11';
+  var APP_VERSION = 'v0.7.12';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
@@ -654,7 +683,7 @@
       body: 'Five steps from idea to offer: Seed, Root, Sprout, Bloom, Pollinate. What you write there fills in your AI prompts and your offer card. It is optional.' },
     { art: function () { return '<span class="donemark tour-lock">' + svg('lock', 40) + '</span>'; },
       title: 'Your notes stay with you',
-      body: 'What you write stays on this phone. Grove sends Ran anonymous weekly counts (no names, no notes), and you can switch that off.' }
+      body: 'What you write stays on this phone. Grove sends Ran anonymous weekly counts (no names, no notes), and you can switch that off in Settings.' }
   ];
 
   /* ---------- screens ---------- */
@@ -699,7 +728,7 @@
       body = stepBlock + lineCard() + (isRest ? '' : pausePanel('grounding')) +
         '<div class="working-orb">' + timerBlob(d) + '</div>' +
         (timerShown(d) ? '<div id="work-time" class="working-time">' + timerBlock(d) + '</div>'
-          : '<div class="working-time"><button class="btn ghost small-btn" data-act="timerOpen">Use a timer</button></div>') +
+          : '<div class="working-time"><div class="row" style="gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn ghost small-btn" data-act="timerOpen">Use a timer</button><button class="btn ghost small-btn" data-act="restOpen">Take a rest</button></div></div>') +
         (isRest ? pausePanel('nsdr') + restIdeas() : '') +
         field('Notice something? Jot it down', 'day.happened', d.happened, 'It will be waiting in your check-out.', 2) +
         '<div style="flex:1"></div>' +
@@ -766,7 +795,7 @@
   function baseStep(step) {
     var t = String(step || '').trim().replace(/[.\s]+$/, '');
     SHRINK.forEach(function (x) { if (t.indexOf(x[0]) === 0) t = t.slice(x[0].length); });
-    return t;
+    return /^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t; /* v0.7.12: reads as one sentence after the prefix */
   }
   function shrinkPanel(d) {
     if (!S.ui.shrink || !has(d.step)) return '';
@@ -854,7 +883,7 @@
   ];
   var SETUP_STEPS = 3;
   /* Setup screen 1 (v0.7.4): three ways an idea stalls, so people recognise themselves. One tap, optional. */
-  var FIT_OPTIONS = [['big', 'It feels too big to start'], ['many', 'Too many ideas to pick one'], ['stop', 'I start strong, then stop'], ['polish', 'I keep polishing and never show it']]; /* v0.7.10: Shunuo's two added; 'start' retired */
+  var FIT_OPTIONS = [['big', 'It feels too big to start'], ['many', 'Too many ideas to pick one'], ['stop', 'I start strong, then stop'], ['where', 'I don\'t know where to start']]; /* v0.7.10: Shunuo's two added; 'start' retired. v0.7.12: 'polish' swapped for 'where' (K, Li, Shunuo) */
   /* Setup screen 2: the "so that" of a user story, in the person's own words (v0.7.5; no ready-made options).
      Kept apart from the Growth Map's "Why does this matter to you?" (project.why). */
   /* v0.7.10: break the stretch into week-sized goals (Shunuo). Up to four lines; 8 weeks go in pairs, 12 in threes.
@@ -863,6 +892,16 @@
     n = n || 4; var per = n <= 4 ? 1 : Math.ceil(n / 4), out = [];
     for (var a = 1; a <= n; a += per) { var b = Math.min(n, a + per - 1); out.push({ label: a === b ? 'Week ' + a : 'Weeks ' + a + '–' + b, from: a, to: b }); }
     return out;
+  }
+  /* v0.7.12: finishing setup on top of the example keeps only what was written in setup. Before, the example's
+     Growth Map answers stayed and looked like hints (K, 2026-11-26). */
+  function dropExample() {
+    if (!S.ui.isExample) return;
+    var keep = {}; ['what', 'soThat', 'fit', 'weeks', 'wg0', 'wg1', 'wg2', 'wg3'].forEach(function (k) { if (S.project[k] !== undefined) keep[k] = S.project[k]; });
+    var theme = S.ui.theme, share = S.feedback.shareCounts, mapSeen = S.ui.mapSeen;
+    S = blank(); S.ui.theme = theme; S.ui.mapSeen = mapSeen; S.ui.toured = true; S.feedback.shareCounts = share;
+    Object.assign(S.project, keep); S.screen = 'setup';
+    toast('Example cleared. This one is yours.');
   }
   function applyWeekGoals() {
     var start = monday(today());
@@ -901,7 +940,7 @@
       body = '<div class="tour-art"><span class="logo-big tour-logo">' + LOGO + '</span></div>' +
         '<div class="stack tour-text"><span class="label">Grove · the builder\'s journal</span><h1>Make the thing you keep putting off</h1>' +
         '<p class="muted">One small step a day, one real reaction a week.</p></div>' +
-        '<div class="stack" style="gap:10px"><span class="label">Sounds like you?</span><div class="seg chips fit-chips">' + fits + '</div></div>';
+        '<div class="stack" style="gap:10px"><span class="label">Sounds like you? (optional)</span><div class="seg chips fit-chips">' + fits + '</div></div>';
       next = '<button class="btn" data-act="setupStep" data-arg="1">Set it up · one minute</button>';
     } else if (i === 1) {
       var chips = GOAL_STARTERS.map(function (g) { return '<button data-act="goalStarter" data-arg="' + esc(g) + '">' + esc(g.trim()) + '…</button>'; }).join('');
@@ -1086,11 +1125,11 @@
       '<button class="' + (!isCur ? 'on' : '') + '" aria-pressed="' + !isCur + '" data-act="showWeek" data-arg="' + addDays(cur, 7) + '">Plan next week</button></div>' +
       '<div class="cols"><div class="g g1">' +
       (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' : '') +
-      field('Your ' + (S.project.weeks || 4) + '-week goal', 'project.periodGoal', S.project.periodGoal, 'What would you like to have by the end?', 2) +
+      (has(S.project.periodGoal) ? field('Your ' + (S.project.weeks || 4) + '-week goal', 'project.periodGoal', S.project.periodGoal, 'What would you like to have by the end?', 2) : '') +
       field('This week\'s goal', 'week.question', w.question, 'A piece of the bigger goal: what would you like done or found out by Sunday?', 2) +
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
       field('Who could react to it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
-      '<p class="small muted" style="margin-top:-12px">Not sure who? Someone you already know who has this problem is enough. <button class="link" style="padding:0;min-height:0;font-size:inherit" data-act="copyAsk">Copy a message to send them</button></p>' +
+      '<p class="small muted" style="margin-top:-12px">Not sure who? Someone you already know is enough. <button class="link" style="padding:0;min-height:0;font-size:inherit" data-act="copyAsk">Copy a message to send them</button></p>' +
       (isCur ? '<p class="small ' + (pl.warn ? 'warn' : 'muted') + '">' + esc(pl.text) + '</p>' + reachButton() : '') +
       '<div class="stack"><span class="label">One small step per day, if you like</span>' + rows + '</div>' +
       (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
@@ -1185,8 +1224,9 @@
     var people = st.reach;
     var steps = notes.filter(function (n) { return has(n.step) && !n.rest; }).length;
     var notice = '';
-    if (!people) {
-      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>No reach yet</span><p>No reaction from someone else this week. That is the first thing to change next week.</p></div>';
+    var weekOver = wk < monday(today()) || parse(today()).getDay() === 0;
+    if (!people && weekOver) {
+      notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>No reach this week</span><p>That is fine. If you like, pick one person for next week.</p></div>';
     } else if (st.learn < st.learnTarget) {
       notice = '<div class="notice stack"><span class="tag"><span class="ring"></span>Little to learn from</span><p>' + st.learn + ' of ' + st.learnTarget + ' check-outs had a note this week. Fewer is thin. You can still decide.</p></div>';
     }
@@ -1398,7 +1438,7 @@
     reframeExpand: function () { D().reframe = 'open'; render(); },
     useExampleStep: function (arg) { var d = D(); d.step = arg; render(); var el = document.getElementById('step-input'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } },
     setupAgain: function () { S.ui.setupIdx = 0; go('setup'); },
-    setupFinish: function () { applyWeekGoals(); S.ui.setupFinish = true; render(); },
+    setupFinish: function () { dropExample(); applyWeekGoals(); S.ui.setupFinish = true; render(); },
     setupStep: function (arg) { S.ui.setupFinish = false; S.ui.setupIdx = Math.min(Math.max(Number(arg) || 0, 0), SETUP_STEPS - 1); render(); },
     setWeeks: function (arg) { S.project.weeks = Number(arg); render(); },
     setupDone: function (arg) { S.ui.setupDone = true; S.ui.toured = true; S.ui.setupIdx = 0; S.ui.setupFinish = false; go('today'); if (arg === 'later') toast('Grove will be here when you are ready.'); },
@@ -1431,6 +1471,8 @@
     },
     reachToggle: function () { var d = D(); d.person = !d.person; render(); if (d.person) toast('Reach for this week. Nice.'); },
     timerOpen: function () { D().timerOn = true; render(); },
+    /* v0.7.12: Rest ideas stay one tap away while the timer is folded (they are what testers liked most). */
+    restOpen: function () { var d = D(); d.timerOn = true; stopPause(); setTimer(d, 'rest', defaultMins(d, 'rest')); },
     timerStart: function () { var d = D(), t = timerOf(d); t.end = new Date(Date.now() + leftMs(t)).toISOString(); S.ui.timerDone = false; S.ui.custom = false; render(); },
     timerPause: function () { var t = timerOf(D()); t.left = Math.max(0, leftMs(t)); t.end = ''; render(); },
     timerReset: function () { var t = timerOf(D()); t.left = t.mins * 60000; t.end = ''; S.ui.timerDone = false; render(); },
@@ -1567,7 +1609,7 @@
   }
 
   /* v0.7.7: actions that change something in place keep the page where it is, instead of jumping to the top. */
-  var KEEP_SCROLL = { timerOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
+  var KEEP_SCROLL = { timerOpen: 1, restOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
     moreTime: 1, customToggle: 1, setCustom: 1, nextLine: 1, pauseOpen: 1, pauseClose: 1, pauseToggle: 1, reachToggle: 1,
     result: 1, reframeExpand: 1, setFit: 1, setWeeks: 1, goalStarter: 1, useExampleStep: 1, smaller: 1, editStep: 1, useQuestion: 1 };
   var keepScroll = false;
