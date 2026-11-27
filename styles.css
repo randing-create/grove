@@ -368,3 +368,30 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 /* v0.7.12: smaller shape on the energy check-in, so "That is my energy" is on screen without scrolling (Shunuo) */
 .energy .blob-wrap { height: 180px; }
 .energy .blob.lv1 { --s: 58px; } .energy .blob.lv2 { --s: 86px; } .energy .blob.lv3 { --s: 114px; } .energy .blob.lv4 { --s: 142px; } .energy .blob.lv5 { --s: 170px; }
+/* v0.8 */
+.mapstep .map-when { margin-top: 2px; }
+.mapstep.here { border-color: var(--line-strong); }
+.map-nudge { align-self: flex-start; font-size: 15px; }
+.log { gap: 0; }
+.log-item { display: flex; flex-direction: column; gap: 2px; padding: 12px 0; border-top: 1px solid var(--line); }
+.log-item:first-child { border-top: none; }
+.log-item p { margin: 2px 0; }
+a.foot-link { display: inline; }
+
+/* v0.8: one surface for everything that sits on the energy-tinted background, so nothing looks pasted on.
+   Cards, notices, inputs and panels are the same soft see-through white; colour stays in small things (shape, dots, rings). */
+:root { --glass: color-mix(in srgb, var(--surface) 62%, transparent); --glass-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+  --glass-line: color-mix(in srgb, var(--surface) 75%, var(--line)); --glass-sunk: color-mix(in srgb, var(--ink) 6%, transparent); }
+:root[data-theme="dark"] { --glass: rgba(255,255,255,.06); --glass-strong: rgba(255,255,255,.09); --glass-line: rgba(255,255,255,.12); --glass-sunk: rgba(255,255,255,.07); }
+.card, .notice, .starter, .two > div, .offercard, details.mapstep, .pause-card, .shrink, .rest-ideas, .reframe, .ideal-recap, .energy-row {
+  background: var(--glass); border: 1px solid var(--glass-line); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: none; }
+textarea, input[type="text"] { background: var(--glass-strong); border-color: var(--glass-line); }
+textarea.plain { background: transparent; }
+.pill, .mode-seg, .pause-track, details pre, .dayrow .rest.on { background: var(--glass-sunk); }
+.mode-seg button.on { background: var(--glass-strong); }
+:root:not([data-theme="dark"]) nav.tabs button.on, :root[data-theme="dark"] nav.tabs button.on { background: var(--glass-sunk); }
+/* The line for today keeps its lilac, softened so it sits with any energy colour */
+.mantra { background: color-mix(in srgb, var(--lilac) 48%, transparent); border: 1px solid color-mix(in srgb, var(--lilac) 60%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+:root[data-theme="dark"] .mantra { background: color-mix(in srgb, var(--lilac) 22%, transparent); color: var(--text); }
+:root[data-theme="dark"] .mantra .label, :root[data-theme="dark"] .mantra-next { color: var(--muted); }
+:root:not([data-theme="dark"]) nav.tabs button.on, :root[data-theme="dark"] nav.tabs button.on { background: transparent; }

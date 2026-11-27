@@ -60,12 +60,12 @@
       write: 'One real person. What is happening around them, what they tell themselves, how that feels, what they do or avoid. Then the same once the problem is solved.',
       tryIt: 'Ask one person about the last time the problem happened. What did they do, what did they try, what did it cost them? Save one sentence in their words. That is Reach.',
       question: 'What did one real person do the last time this problem came up?' },
-    { key: 'sprout', name: 'Sprout', title: 'Make the smallest offer', fields: ['offer'], prompts: ['demo', 'concept'],
+    { key: 'sprout', name: 'Sprout', title: 'Make the smallest offer', fields: ['offer'], prompts: ['demo', 'concept', 'handmade'],
       when: 'You keep adding features, or you cannot say what it is in one breath.',
       write: 'The smallest version you could put in front of someone, who it is for and who it is not for.',
       tryIt: 'Watch one real person use it on their own task. Say as little as you can. That is Reach.',
       question: 'What happens when one person tries the smallest version on their own task?' },
-    { key: 'bloom', name: 'Bloom', title: 'Show the work', fields: ['place'], prompts: ['content', 'videoscript', 'notebooklm', 'handmade'],
+    { key: 'bloom', name: 'Bloom', title: 'Show the work', fields: ['place'], prompts: ['story', 'content'],
       when: 'The work exists and nobody has seen it.',
       write: 'One place and one kind of person, and the one thing you want them to do next.',
       tryIt: 'Share it once, there, with that ask. Note who actually does it. Each reaction is Reach.',
@@ -97,39 +97,55 @@
   };
   var PROMPTS = {
     conversation: { title: 'Prepare a real user conversation', blurb: 'Five neutral questions about the last time the problem came up, and a sentence to ask for the talk.', fields: ['what', 'who', 'question'],
-      ask: ['Help me prepare one conversation with a real person this week.', 'Give me five neutral questions about the last time this problem came up for them: what they did, what they tried, what it cost them.', 'No leading questions and no pitching. Then write one short, friendly sentence I can use to ask for the conversation.'] },
+      intro: "I want to talk to one real person about this problem this week, and I'd like help preparing.",
+      ask: ["Five neutral questions about the last time this problem came up for them: what happened, what they did, what they tried, what it cost them.", "No leading questions, and no pitching my idea.", "One short, friendly message I can send to ask for 15 minutes of their time."] },
     smaller: { title: 'Make this step smaller', blurb: 'Three ten-minute versions of today\'s step that can still teach you something.', fields: ['what', 'question', 'step'],
-      ask: ['Give me three smaller versions of today\'s step. Each should take about ten minutes and still move this week\'s goal forward.'] },
+      intro: "Today's step feels too big. Help me make it smaller.",
+      ask: ["Three smaller versions of today's step, about ten minutes each.", "Each one should still move this week's goal forward."] },
     vision: { title: 'Say what this is in two sentences', blurb: 'A short description in your own words, and one small next step.', fields: ['what', 'who', 'after'],
-      ask: ['Using only my words above, write two sentences: who this is for and what changes for them.', 'Then suggest one small next step I could take in ten to thirty minutes.', 'Do not add claims I did not make.'] },
+      intro: "I want to say what I'm making in two sentences.",
+      ask: ["Two sentences: who this is for and what changes for them, in my words.", "One small next step I could take in 10 to 30 minutes."] },
     landscape: { title: 'What do people use today?', blurb: 'A look at how this problem gets solved now, including doing nothing.', fields: ['what', 'who'],
-      ask: ['List what people in this situation already use to deal with this problem, including doing nothing or using a spreadsheet.', 'For each: what it does well, and where it falls short for the person I described.', 'Say which points you are unsure about. Do not invent product names, prices or numbers.'] },
+      intro: "Before I build anything, I want to know how people deal with this problem today.",
+      ask: ["What people in this situation already use, including doing nothing or a spreadsheet.", "For each: what works for them, and where it falls short for the person I described.", "Say where you are unsure. Don't invent product names, prices or numbers."] },
     profile: { title: 'Describe the person I am building for', blurb: 'A one-page picture of one person, before and after.', fields: ['who', 'before', 'after'],
-      ask: ['Write a short profile of this one person from my notes: their situation, what they tell themselves, how it feels, and what they do or avoid. Then the same four points once the problem is solved.', 'Mark anything you are guessing with (guess), so I can check it with a real person.'] },
+      intro: "Help me picture the one person I'm making this for.",
+      ask: ["A short profile: their situation, what they tell themselves, how it feels, what they do or avoid.", "The same four points once the problem is solved."] },
     persona: { title: 'Rehearse with a stand-in', blurb: 'The AI plays your person so you can practise before the real talk.', fields: ['who', 'before', 'offer'],
-      ask: ['Play this person so I can rehearse a conversation. Stay in character and answer as they honestly would, including doubts and polite brush-offs.', 'Start by asking what I want to talk about. After five exchanges, step out of character and tell me which of my questions were leading.', 'This is practice. It does not replace talking to a real person.'] },
+      intro: "I want to practise a conversation before I talk to a real person. Please play the person described below.",
+      ask: ["Stay in character and answer as they honestly would, doubts and polite brush-offs included.", "Start by asking what I want to talk about.", "After five exchanges, step out of character and tell me which of my questions were leading."], roleplay: true },
     demo: { title: 'Plan the roughest demo', blurb: 'What to build, what to fake and what to leave out, explained so you can change it yourself.', fields: ['what', 'who', 'offer'],
-      ask: ['Help me plan the roughest demo that lets one person try this on their own task in ten minutes.', 'Tell me the one screen or step that matters, what I can fake, and what to leave out. Then write a prompt I can give to an AI building tool.', 'Explain each choice so I can change it myself.'] },
+      intro: "I want to make the roughest version someone can try, without building too much.",
+      ask: ["The one screen or step that matters, what I can fake, and what to leave out, so one person can try it on their own task in ten minutes.", "A prompt I can give to an AI building tool to make it.", "One line on each choice, so I can change it myself."] },
     concept: { title: 'Plan a quick test', blurb: 'What to show, what to ask, what to watch for, and what would change your mind.', fields: ['offer', 'who', 'question'],
-      ask: ['Write a short test plan: what I show, what I ask the person to do, what I watch for, and what result would change my mind.', 'Remind me to stay quiet while they try.'] },
-    videoscript: { title: 'Write a one-minute video script', blurb: 'A hook, three short shots and an invitation, ready to record on your phone.', fields: ['what', 'who', 'before', 'after', 'invite'],
-      ask: ['Write a script for a 60-second phone video about this project, for the person described above.', 'Structure: a one-line hook for the first three seconds; three short shots, each with what I say and what the camera shows; one clear invitation at the end.', 'Use my own words where you can, keep sentences short, and mark anything you guessed with (guess). Do not invent results.'] },
-    notebooklm: { title: 'Make a short video in NotebookLM', blurb: 'A brief to paste into NotebookLM with your notes, so its video overview explains your project.', fields: ['what', 'who', 'after', 'question', 'invite'],
-      ask: ['Write a brief I can paste into NotebookLM together with my notes, so that its video overview explains this project to the person described above.', 'Include: who the video is for, the three points it should make in plain words, one real moment from this week (leave a blank for me to fill in), and the one thing I want viewers to do next.', 'Keep it under 200 words. Do not invent results or numbers.'] },
+      intro: "I want to test my idea with one person this week.",
+      ask: ["What I show, what I ask them to do, and what I watch for.", "What result would change my mind.", "A reminder to stay quiet while they try."] },
+    /* v0.8: the one way to show your work, build-in-public style: no new questions, Grove hands your own journal to your AI,
+       which writes a short honest update and the same story as a few slides (Claude can make those as a page to share). */
+    story: { title: 'Share your progress', blurb: 'Grove turns your journal into a short update and a few slides, so you can show people what you are making and ask for one reaction.', fields: ['what', 'who'], journal: true,
+      intro: "I've kept a journal while making this. Help me share my progress in public, honestly and briefly.",
+      ask: ["A short update (under 120 words) for a group chat or social post: what I'm making, what I tried, what happened, including what didn't work, what's next, and one question for the people reading.", "The same story as five slides, one short line each, with an idea for a photo or screenshot I could add. If you can make files, make it a simple slide page I can share.", "Use my journal's own words. No results, numbers or quotes that are not in it."] },
     handmade: { title: 'Make it by hand', blurb: 'A paper or physical prototype you can put in front of someone this week.', fields: ['what', 'who', 'offer'],
-      ask: ['Help me make a hand-made prototype of this that I can put in front of one real person this week: paper, cardboard, sticky notes, a printed page, or a role-played session.', 'Give me two options. For each: the materials, how to make it in under an hour, and three things to ask the person while they try it.', 'Nothing digital is needed.'] },
+      intro: "Before building anything digital, I want to put a hand-made version in front of one person this week.",
+      ask: ["Two options: paper, cardboard, sticky notes, a printed page or a role-played session.", "For each: the materials, how to make it in under an hour, and three things to ask while they try it."] },
     content: { title: 'What could I share, and where?', blurb: 'Five things to share that lead to one next action, and where to find these people.', fields: ['who', 'before', 'after', 'offer'],
-      ask: ['Suggest five things I could share in one place where these people already are. Each one starts from their situation today and points to one next action.', 'Then suggest three kinds of places where I might find them.', 'Do not invent facts about my work or results.'] },
+      intro: "I want to share my work where the right people already are.",
+      ask: ["Five things I could share in one place. Each starts from their situation today and points to one next action.", "Three kinds of places where I might find these people."] },
     pitch: { title: 'Practise the invitation', blurb: 'The AI plays your person while you make a concrete ask.', fields: ['who', 'offer', 'after'],
-      ask: ['Play this person while I make a concrete invitation, including a price if I state one. Raise the two or three most likely hesitations, one at a time.', 'Afterwards, tell me where I over-explained and give me a shorter version of my ask.'] },
+      intro: "I want to practise inviting someone. Please play the person described below.",
+      ask: ["Let me make a concrete invitation, with a price if I name one.", "Raise the two or three most likely hesitations, one at a time.", "Afterwards, tell me where I over-explained and give me a shorter version of my ask."], roleplay: true },
     followup: { title: 'Set up a follow-up list', blurb: 'A simple list of who you asked and when, and one warm follow-up message.', fields: ['who', 'offer'],
-      ask: ['Set up a simple follow-up list I can keep in a note or a spreadsheet: the columns, one example row, and a short follow-up message I can send once.', 'The message should be warm and plain, and easy to say no to.'] },
+      intro: "I want to keep track of who I've asked, and follow up once, kindly.",
+      ask: ["Columns for a simple list in a note or a spreadsheet, with one example row.", "One short follow-up message: warm, plain and easy to say no to."] },
     canvas: { title: 'Sketch the business on one page', blurb: 'A first-draft business model canvas from your notes, with the guesses marked.', fields: ['what', 'who', 'offer', 'after'],
-      ask: ['Fill in a business model canvas from my notes: who it serves, the value to them, how it reaches them, how the relationship works, how money comes in, key activities, key resources, key partners and main costs.', 'Mark every box you had to guess with (guess). Then tell me which two guesses are riskiest and how I could test each one this week.'] },
+      intro: "I want a first rough picture of how this could work as a small business.",
+      ask: ["A business model canvas from my notes: who it serves, the value to them, how it reaches them, the relationship, how money comes in, key activities, resources, partners and main costs.", "Then the two riskiest guesses, and how I could test each one this week."] },
     storyboard: { title: 'Storyboard one person\'s day', blurb: 'Six frames, from the moment the problem shows up to the moment it is solved.', fields: ['who', 'before', 'after', 'offer'],
-      ask: ['Write a six-frame storyboard for this one person: the moment the problem shows up, what they try, where it goes wrong, how they come across my offer, the first time they use it, and what is different afterwards.', 'One or two sentences per frame, in plain words. Mark what you are guessing with (guess).'] },
+      intro: "I want to picture one person's day, with and without what I'm making.",
+      ask: ["Six frames: the problem shows up, what they try, where it goes wrong, how they find what I offer, the first time they use it, and what is different afterwards.", "One or two plain sentences per frame."] },
     investors: { title: 'Keep track of supporters and funders', blurb: 'A simple list of people who might back the project, and a monthly update to send them.', fields: ['what', 'who', 'after', 'invite'],
-      ask: ['Set up a simple list for people who might support or fund this: the columns, one example row, and what to note after each conversation.', 'Then draft a short update I could send once a month: what I tried, what I learned, what I need. Leave the numbers blank for me to fill in.'] }
+      intro: "I want to keep the people who might support this project in the loop.",
+      ask: ["Columns for a simple list of possible supporters or funders, one example row, and what to note after each conversation.", "A short monthly update: what I tried, what I learned, what I need. Leave the numbers blank for me."] }
   };
 
   /* ---------- state ---------- */
@@ -214,6 +230,14 @@
   /* v0.7.12: clear leftovers from the example (every version of it). People who loaded it before v0.7 had no
      example flag, so its Growth Map answers stayed and looked like hints (K, 2026-11-26). Only exact example text is cleared. */
   var EXAMPLE_TEXTS = [
+    "Make a weekly meal planner our family of four can share",
+    "I plan every dinner in my head on the way to the shop, and my partner never knows what we need. I want us to plan it together on one screen.",
+    "My partner and me first, then friends with kids.",
+    "One parent plans every dinner alone, forgets half the shopping, and the family ends up with takeaway twice a week.",
+    "Both parents pick dinners on one screen and get one shopping list. Our daughter picks Friday.",
+    "One screen: each of us picks dinners, and it makes one shopping list.",
+    "The parents' group chat at school.",
+    "Try it this Sunday and tell me which dinners you picked.",
     "A two-week try-out of Grove with one check-in call.",
     "About 30 minutes a day.",
     "An independent consultant who wants to turn what she knows into a small product.",
@@ -360,6 +384,21 @@
   function notesIn(wk) {
     return weekDays(wk).filter(function (k) { return S.days[k] && S.days[k].out; }).map(function (k) { return Object.assign({ date: k }, S.days[k]); });
   }
+  /* v0.8: every check-out you wrote something in, newest first: a simple work log (Sha). */
+  function logList() {
+    var keys = Object.keys(S.days).filter(function (k) { var r = S.days[k]; return r.out && !r.rest && (has(r.happened) || has(r.changes)); }).sort().reverse();
+    if (!keys.length) return '<span class="small muted">Each check-out you write something in shows up here. After a few, Grove can turn them into a short update to share.</span>';
+    var shown = S.ui.logAll ? keys : keys.slice(0, 7);
+    var labels = { done: 'Did it', part: 'Did part of it', stuck: 'Got stuck', changed: 'Changed the plan', not: 'Did not get to it' };
+    return '<div class="list log">' + shown.map(function (k) {
+      var r = S.days[k];
+      return '<div class="log-item"><span class="small muted">' + esc(nice(k)) + (r.result && labels[r.result] ? ' · ' + labels[r.result] : '') + (r.person ? ' · Reach' : '') + '</span>' +
+        (has(r.step) ? '<span class="small">' + esc(r.step) + '</span>' : '') +
+        (has(r.happened) ? '<p>' + esc(r.happened) + '</p>' : '') +
+        (has(r.changes) ? '<span class="small muted">Next time: ' + esc(r.changes) + '</span>' : '') + '</div>';
+    }).join('') + '</div>' +
+      (keys.length > 7 ? '<button class="link" data-act="logAll">' + (S.ui.logAll ? 'Show fewer' : 'Show all ' + keys.length) + '</button>' : '');
+  }
   function reviewWeek() {
     var cur = monday(today()), prev = addDays(cur, -7);
     var ringed = S.rings.some(function (r) { return r.week === prev; });
@@ -464,19 +503,38 @@
     return D()[p[1]] || '';
   }
   function promptFilled(kind) { return PROMPTS[kind].fields.filter(function (k) { return has(fieldValue(k)); }).length; }
+  /* v0.8: clearer prompts (Ran). What I want help with, then my project in plain labelled lines (only what is written),
+     then a numbered list of what I want back, then one short line on how to answer. */
+  var PROMPT_LABELS = { what: 'My goal', why: 'Why it matters to me', who: 'Who it is for', before: 'What it is like for them now',
+    after: 'What changes for them once it works', offer: 'The smallest version I could offer', place: 'Where I will show it',
+    invite: 'What I want people to do next', question: 'This week\'s goal', step: 'Today\'s step', sign: 'A sign it is going well' };
   function buildPrompt(kind) {
     var P = PROMPTS[kind];
-    var lines = ['Help me move my project forward. Here is what I have so far.', ''];
-    P.fields.forEach(function (k) {
-      var v = fieldValue(k);
-      lines.push(FIELDS[k][1].replace(/\?.*$/, '').replace(/\.$/, '') + ': ' + (has(v) ? v.trim() : '(not written yet)'));
-    });
-    if (P.fields.indexOf('what') >= 0 && S.project.weeks) lines.push('Time I am giving it: ' + S.project.weeks + ' weeks');
+    var cut = function (x) { return String(x).trim().replace(/[.\s]+$/, ''); };
+    var lines = [P.intro, '', P.roleplay ? 'The person, and what I am making, in my own words:' : 'About my project, in my own words:'];
+    var any = false;
+    P.fields.forEach(function (k) { var v = fieldValue(k); if (!has(v)) return; any = true;
+      /* The goal is written after "I want to" in setup, so it reads as a sentence here. */
+      if (k === 'what') { var g = cut(v); lines.push('- My goal: ' + (/^i\b/i.test(g) ? g : 'I want to ' + g.charAt(0).toLowerCase() + g.slice(1)) + '.'); return; }
+      lines.push('- ' + (PROMPT_LABELS[k] || FIELDS[k][1]) + ': ' + cut(v) + '.'); });
+    if (P.fields.indexOf('what') >= 0 && S.project.weeks) lines.push('- Time I am giving it: ' + S.project.weeks + ' weeks.');
     var d = D();
-    if (d.energy) lines.push('My energy today: ' + d.energy + ' of 5');
-    lines.push('');
-    P.ask.forEach(function (a) { lines.push(a); });
-    lines.push('Suggest, don\'t decide for me. If something is unclear, ask me one question first.');
+    if (kind === 'smaller' && d.energy) lines.push('- My energy today: ' + d.energy + ' of 5.');
+    if (!any) lines.push('- (nothing written yet)');
+    if (P.journal) {
+      var keys = Object.keys(S.days).filter(function (k) { var r = S.days[k]; return r.out && !r.rest && (has(r.happened) || has(r.changes) || has(r.step)); }).sort();
+      var start = keys[0] || today(), shown = Object.keys(S.days).filter(function (k) { var r = S.days[k]; return r.startedAt || r.out || r.rest; }).length;
+      lines.push('', 'My journal from Grove, oldest first:');
+      keys.slice(-21).forEach(function (k) { var r = S.days[k];
+        lines.push('- ' + nice(k) + ': ' + [has(r.step) ? 'step: ' + cut(r.step) : '', has(r.happened) ? 'what happened: ' + cut(r.happened) : '', has(r.changes) ? 'next time: ' + cut(r.changes) : '', r.person ? 'someone else reacted' : ''].filter(Boolean).join('; ') + '.'); });
+      if (!keys.length) lines.push('- (nothing written yet)');
+      lines.push('- Days I showed up since ' + nice(start) + ': ' + shown + '. Reactions from someone else: ' + Object.keys(S.days).filter(function (k) { return S.days[k].person; }).length + '.');
+    }
+    lines.push('', 'What I would like from you:');
+    P.ask.forEach(function (a, n) { lines.push((n + 1) + '. ' + a); });
+    lines.push('', P.roleplay
+      ? 'Keep each reply short, like a real conversation. This is practice and does not replace talking to a real person.'
+      : 'Keep it short and plain. Use only what I wrote above, and mark anything you have to guess with (guess). If something important is missing, ask me one question first. Suggest, but leave the decisions to me.');
     return lines.join('\n');
   }
   /* v0.7.8: the calendar-file reminder did not work on iPhone and was removed. A real reminder needs push, later. */
@@ -518,7 +576,7 @@
       setup: !!S.ui.setupDone, weeks: S.project.weeks || 0, version: APP_VERSION };
   }
   function sendCounts(force) {
-    if (!FEEDBACK_ENDPOINT || S.feedback.shareCounts === false || (navigator.onLine === false)) return;
+    if (!FEEDBACK_ENDPOINT || S.feedback.shareCounts === false || S.ui.isExample || (navigator.onLine === false)) return; /* v0.8: never count the example */
     if (!S.ui.setupDone && !hasAnyData()) return;
     var t = today(); if (!force && S.ui.countsDay === t) return;
     if (!S.ui.deviceId) S.ui.deviceId = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -661,11 +719,11 @@
       '<button class="btn ghost small-btn" data-act="openPrompt" data-arg="' + kind + '|' + from + '">Open</button></div></div>';
   }
   /* Bump with every release that goes live, and add a line to CHANGELOG.md. */
-  var APP_VERSION = 'v0.7.12';
+  var APP_VERSION = 'v0.8';
   var IDLE_TITLE = 'Grove \u00b7 the builder\'s journal';
   /* Where "Community" in the footer goes. Empty until there is a page: then it says it is coming soon. Plan: WoMen AI Lab, later the WAL Academy. */
   var COMMUNITY_URL = '';
-  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + '<br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openSettings">Settings</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button> · <button class="link foot-link" data-act="community">Community</button></p>';
+  var FOOT = '<p class="foot">Grove by WoMen AI Lab · ' + APP_VERSION + '<br><button class="link foot-link" data-act="tour">How Grove works</button> · <button class="link foot-link" data-act="setupAgain">Setup</button> · <button class="link foot-link" data-act="openSettings">Settings</button> · <button class="link foot-link" data-act="openFeedback">Feedback</button> · <a class="link foot-link" href="https://randing-create.github.io/wal-academy-app/" target="_blank" rel="noopener">Academy</a></p>';
 
   /* The tour: the five things worth knowing first. */
   var TOUR = [
@@ -734,7 +792,8 @@
         '<div style="flex:1"></div>' +
         '<button class="btn" data-act="wrapUp">Wrap up for today</button>' +
         '<div class="row" style="justify-content:center;gap:18px">' + (S.ui.editStep ? '' : '<button class="link" data-act="editStep">Change the step</button>') +
-        '<button class="link" data-act="unstart">Not started yet</button></div>';
+        '<button class="link" data-act="unstart">Not started yet</button></div>' +
+        '<button class="link map-nudge" style="align-self:center" data-act="openMapAt">Stuck right now? Open the Growth Map</button>';
       return '<section class="screen">' + head + yNote + body + FOOT + '</section>' + tabs('today');
     }
 
@@ -750,7 +809,7 @@
           '<div class="row" style="gap:14px"><button class="btn small-btn" data-act="sendFirst">Send to Ran</button><button class="link" data-act="skipFirst">Skip</button></div></div>' : '') +
         (has(d.step) && !d.rest ? '<p><span class="struck">' + esc(d.step) + '</span></p>' : '') +
         (resultLabel(d.result) ? '<span class="pill">' + esc(resultLabel(d.result)) + '</span>' : '') +
-        (!d.rest && (d.result === 'stuck' || d.result === 'not') ? '<button class="link" data-act="openIdeal" data-arg="today">Want to picture the day it works?</button>' : '') +
+        (!d.rest && (d.result === 'stuck' || d.result === 'not') ? '<div class="stack" style="gap:0;align-items:center"><button class="link" data-act="openMapAt">Stuck? The Growth Map can help with the next step</button><button class="link" data-act="openIdeal" data-arg="today">Or picture the day it works</button></div>' : '') +
         (has(d.happened) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What happened</span><p>' + esc(d.happened) + '</p></div>' : '') +
         (has(d.changes) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">What it changes</span><p>' + esc(d.changes) + '</p></div>' : '') +
         (has(tomorrow) ? '<div class="notice" style="text-align:left;align-self:stretch"><span class="label">Tomorrow</span><p>' + esc(tomorrow) + '</p></div>' : '') +
@@ -774,6 +833,7 @@
         '<div class="seg chips step-examples" aria-label="Ideas">' + stepExamples(d).map(function (x) { return '<button data-act="useExampleStep" data-arg="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' +
         '<textarea id="step-input" class="plain" rows="3" data-bind="day.step" placeholder="Write one small step">' + esc(d.step) + '</textarea>' +
         (size ? '<span class="small muted">' + esc(size) + '</span>' : '') +
+        (!has(d.step) ? '<button class="link map-nudge" data-act="openMapAt">Not sure what the next step is? The Growth Map can help.</button>' : '') +
         (d.energy && d.energy <= 2 && has(d.step) && !d.shrunk && !S.ui.shrink ? '<button class="link" style="align-self:flex-start;padding:0" data-act="smaller">Show smaller versions</button>' : '') +
         '</div></div>' +
         shrinkPanel(d) +
@@ -1127,6 +1187,7 @@
       (isCur ? '<div class="row" style="gap:18px">' + weekRing(statsFor(cur), 132) + ringLegend(statsFor(cur)) + '</div>' : '') +
       (has(S.project.periodGoal) ? field('Your ' + (S.project.weeks || 4) + '-week goal', 'project.periodGoal', S.project.periodGoal, 'What would you like to have by the end?', 2) : '') +
       field('This week\'s goal', 'week.question', w.question, 'A piece of the bigger goal: what would you like done or found out by Sunday?', 2) +
+      (!has(w.question) ? '<button class="link map-nudge" style="margin-top:-12px" data-act="openMapAt">Need an idea? Each Growth Map step suggests a goal.</button>' : '') +
       field('One sign you could observe', 'week.sign', w.sign, 'What would you see or hear if it is going well?', 2) +
       field('Who could react to it this week?', 'week.who', w.who, 'A name is better than a group.', 2) +
       '<p class="small muted" style="margin-top:-12px">Not sure who? Someone you already know is enough. <button class="link" style="padding:0;min-height:0;font-size:inherit" data-act="copyAsk">Copy a message to send them</button></p>' +
@@ -1135,6 +1196,8 @@
       (isCur ? '<button class="btn ghost" data-act="go" data-arg="review">' + (reviewWeek() === cur ? 'Review this week' : 'Review last week') + '</button>' : '') +
       /* v0.7.11: AI Tool Shed, Offer card and Project notes left This Week; they live in the Growth Map steps (Ran). */
       '</div><div class="g g3">' +
+      '<div class="section"><span class="brand">Your log</span>' + logList() +
+      '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="shareProgress">Share your progress</button></div>' +
       '<div class="section"><span class="brand">Growth Rings</span>' + ringList + '</div>' +
       FOOT + '</div></div></section>' + tabs('week');
   };
@@ -1246,8 +1309,10 @@
       '<div class="row" style="gap:18px">' + weekRing(st, 96) + ringLegend(st) + '</div>' +
       notice +
       (idealText() ? '<div class="notice stack" style="gap:4px"><span class="label">Your ideal working day</span><p class="small">' + esc(idealText()) + '</p><span class="small muted">Did this week move you closer to it?</span></div>' : '') +
-      '<details class="stack"><summary class="label">Show your work next week · ask your AI for help</summary>' +
-      promptCard('videoscript', 'review') + promptCard('notebooklm', 'review') + promptCard('handmade', 'review') + '</details>' +
+      /* v0.8: one way to show your work, in plain sight (Ran: keep one). */
+      promptCard('story', 'review') +
+
+      '<button class="link" style="align-self:flex-start" data-act="openMapAt">Not sure what next week should be? The Growth Map has ideas and AI help.</button>' +
       '<p class="serif">What do you want to do next? Your call.</p>' +
       '<div class="seg" role="group" aria-label="Decision">' + seg + '</div>' +
       field('Why?', 'review.reason', S.review.reason, 'One or two sentences in your own words.', 3) +
@@ -1259,17 +1324,19 @@
     return '<section class="screen">' +
       '<header class="top"><span class="brand">Growth Map</span><span class="small muted">Optional</span></header>' + exampleBanner() +
       (has(S.project.what) ? '<div class="notice stack" style="gap:4px"><span class="label">Your goal</span><span>' + esc(S.project.what) + '</span></div>' : '') +
-      '<button class="card map-ideal" data-act="openIdeal" data-arg="map"><span class="stack" style="gap:2px"><span class="serif">Picture the day it works</span>' +
-      '<span class="small muted">' + (idealText() ? 'You wrote this before. Read it again, or walk through it.' : 'Three short questions, when you want to remember why.') + '</span></span><span class="chev">' + svg('chev', 22) + '</span></button>' +
-      '<p class="small muted">For turning a project into something you offer others. Not sure where to start? Open the step that sounds most like where you are now.</p>' +
-      '<p class="muted">Work through the five steps in order, or open only the one you need. What you write here fills in your AI prompts and your offer card.</p>' +
+      /* v0.8: one short line, then each step says when to open it. The step you last opened stays open: you are here. */
+      '<p class="muted">Five steps for making one thing and putting it in front of people. Open the one that sounds like where you are.</p>' +
       MAP.map(function (m, i) {
-        return '<details class="mapstep"><summary><span class="tile t-' + m.key + '">' + svg(m.key, 28) + '</span>' +
-          '<span class="stack" style="gap:2px"><span class="label">' + (i + 1) + ' · ' + m.name + ' · ' + m.fields.filter(function (k) { return has(fieldValue(k)); }).length + ' of ' + m.fields.length + ' written</span><span class="serif">' + m.title + '</span></span>' +
+        var here = S.project.mapStep === i;
+        return '<details class="mapstep' + (here ? ' here' : '') + '"' + (here ? ' open' : '') + '><summary data-act="mapAt" data-arg="' + i + '"><span class="tile t-' + m.key + '">' + svg(m.key, 28) + '</span>' +
+          '<span class="stack" style="gap:2px"><span class="label">' + (i + 1) + ' · ' + m.name + (here ? ' · you are here' : '') + '</span><span class="serif">' + m.title + '</span>' +
+          '<span class="small muted map-when">' + esc(m.when) + '</span></span>' +
           '<span class="chev">' + svg('chev', 22) + '</span></summary>' +
           '<div class="stack" style="gap:16px">' +
-          '<div><span class="label">Open it when</span><p>' + esc(m.when) + '</p></div>' +
           '<div class="stack"><span class="label">Write down</span><p class="small muted">' + esc(m.write) + '</p>' + m.fields.map(function (k) { var f = FIELDS[k]; return field(f[1], f[0], fieldValue(k), f[2], 2); }).join('') + '</div>' +
+          /* v0.8: the ideal day lives in Seed, next to "why it matters" (Ran). */
+          (m.key === 'seed' ? '<button class="card map-ideal" data-act="openIdeal" data-arg="map"><span class="stack" style="gap:2px"><span class="serif">Not sure why it matters? Picture the day it works</span>' +
+            '<span class="small muted">' + (idealText() ? 'You wrote this before. Read it again, or walk through it.' : 'Three short questions about the day this works out.') + '</span></span><span class="chev">' + svg('chev', 22) + '</span></button>' : '') +
           '<div><span class="label">Try it</span><p>' + esc(m.tryIt) + '</p></div>' +
           '<div class="stack goal-offer" style="gap:6px"><span class="label">A goal for this week</span><p class="serif">' + esc(m.question) + '</p>' +
           '<button class="btn ghost small-btn" style="align-self:flex-start" data-act="useQuestion" data-arg="' + i + '">Make this my goal this week</button></div>' +
@@ -1305,26 +1372,39 @@
   function loadExample() {
     var t = today(); var wk = monday(t); var theme = S.ui.theme;
     S = blank(); S.ui.theme = theme;
-    S.project = { what: 'Grove: help women make the thing they keep putting off, one small step at a time.',
-      why: 'I kept polishing my own idea instead of showing it to anyone. I want a tool that gets me out of that.',
-      who: 'An independent consultant, freelancer or creative with years of experience, who wants to turn what she knows into a small product.',
-      before: 'She has started on an idea she cares about. She keeps refining it or learning another tool. At the end of the week she still does not know how someone would use it.',
-      after: 'Every week one real person sees or tries her work, and she knows what to build or sell next.',
-      offer: 'Two weeks with Grove: a few minutes a day, one small step sized to your energy, and a short review at the end of each week.',
-      place: 'The WoMen AI Lab group, to builders who have something they can test this week.',
-      invite: 'Open the link, set this week\'s goal, and tell me after seven days what you would skip.',
-      contact: 'randing-create.github.io/grove', weeks: 4, offerPath: 'yes',
-      ideal1: 'Birds outside, rested, a little excited to open it', ideal2: 'At my desk at nine, coffee, phone in the other room',
-      ideal3: 'Recording a short demo, shoulders loose', ideal4: 'Sent it to two builders, proud of something small' };
+    /* v0.8: the example is a life project made with a little AI, the same one the Academy page shows, not Grove itself. */
+    S.project = { what: 'Make a weekly meal planner our family of four can share',
+      why: 'I plan every dinner in my head on the way to the shop, and my partner never knows what we need. I want us to plan it together on one screen.',
+      who: 'My partner and me first, then friends with kids.',
+      before: 'One parent plans every dinner alone, forgets half the shopping, and the family ends up with takeaway twice a week.',
+      after: 'Both parents pick dinners on one screen and get one shopping list. Our daughter picks Friday.',
+      offer: 'One screen: each of us picks dinners, and it makes one shopping list.',
+      place: 'The parents\' group chat at school.',
+      invite: 'Try it this Sunday and tell me which dinners you picked.',
+      contact: '', weeks: 4, offerPath: '',
+      wg0: 'Write down our ten usual dinners', wg1: 'Make one screen with ChatGPT', wg2: 'My partner and I plan a week with it', wg3: 'Share it with two families',
+      ideal1: 'Kids still asleep, tea in hand', ideal2: 'At the kitchen table, laptop open, phone face down',
+      ideal3: 'Asking ChatGPT to turn our list into a shopping list', ideal4: 'My partner adds a dinner without me asking, and I feel proud' };
     S.weeks[wk] = {
-      question: 'Get one WAL builder to try Grove and tell me what they would skip',
-      sign: 'A note, in my own words, of a day when the step I took was not the one I had planned.',
-      who: 'One WAL builder who has something she can test this week.',
+      question: 'Will my partner plan one dinner with it this week?',
+      sign: 'My partner adds a dinner without me asking.',
+      who: 'My partner',
       plan: {}
     };
-    S.weeks[wk].plan[t] = { step: 'Open Grove, check my energy, and write down the one step I would otherwise skip.', rest: false };
+    /* A few days of journal, so the log and "Share your progress" have something to show. */
+    var past = [
+      [4, 'done', 'Write down the ten dinners we eat most', 'Wrote them on the fridge list. Only eight, we eat pasta a lot.', 'Ask my partner for two more.'],
+      [3, 'part', 'Ask ChatGPT for a one-page planner', 'It made a table. Too many columns, I deleted half.', 'Keep it to days and dinners only.'],
+      [2, 'done', 'Show the planner to my partner', 'My partner picked Thursday and asked for a shopping list at the bottom.', 'Add the shopping list.'],
+      [1, 'stuck', 'Add the shopping list', 'Could not get the list to add up the same things twice.', 'Ask ChatGPT to merge the same items.']
+    ];
+    past.forEach(function (x) {
+      var k = addDays(t, -x[0]);
+      S.days[k] = { energy: 3, step: x[2], startedAt: k + 'T19:30:00', out: true, result: x[1], happened: x[3], changes: x[4], person: x[0] === 2 };
+    });
+    S.weeks[wk].plan[t] = { step: 'Ask ChatGPT to merge the same items in the shopping list.', rest: false };
     S.weeks[monday(addDays(t, 1))] = S.weeks[monday(addDays(t, 1))] || { question: '', sign: '', who: '', plan: {} };
-    planFor(addDays(t, 1)).step = 'Ask one builder to try Today on her own project while I watch.';
+    planFor(addDays(t, 1)).step = 'Our daughter picks Friday\'s dinner on the planner.';
   }
 
   var acts = {
@@ -1455,7 +1535,7 @@
       toast('Coming soon: the WoMen AI Lab community, to share what you are making and see what others make.');
     },
     setFit: function (arg) { S.project.fit = S.project.fit === arg ? '' : arg; render(); },
-    openIdeal: function (arg) { S.ui.idealStep = 0; S.ui.idealFrom = arg === 'map' ? 'map' : 'today'; go('ideal'); },
+    openIdeal: function (arg) { S.ui.idealStep = 0; S.ui.idealFrom = arg === 'map' ? 'map' : 'today'; if (arg === 'map') S.project.mapStep = 0; go('ideal'); },
     offerPath: function (arg) { S.project.offerPath = S.project.offerPath === arg ? '' : arg; render(); },
     idealNext: function () { S.ui.idealStep = (S.ui.idealStep || 0) + 1; render(); },
     idealBack: function () { S.ui.idealStep = Math.max(0, (S.ui.idealStep || 0) - 1); render(); },
@@ -1585,10 +1665,20 @@
       render();
     },
     resume: function () { S.paused = false; render(); },
+    /* v0.8: always visible (Ran could not find it); explains itself until there is a journal to share. */
+    shareProgress: function () {
+      var any = Object.keys(S.days).some(function (k) { var r = S.days[k]; return r.out && !r.rest && (has(r.happened) || has(r.changes)); });
+      if (!any) return toast('Wrap up a few days with one line on what happened. Then Grove can turn them into an update to share.');
+      S.ui.promptKind = 'story'; S.ui.promptFrom = 'week'; go('prompt');
+    },
+    logAll: function () { S.ui.logAll = !S.ui.logAll; render(); },
+    mapAt: function (arg) { var i = Number(arg); S.project.mapStep = S.project.mapStep === i ? '' : i; save(); },
+    openMapAt: function (arg) { if (arg !== undefined && arg !== '') S.project.mapStep = Number(arg); go('map'); },
     useQuestion: function (arg) {
       var w = W(monday(today()));
-      if (has(w.question)) return toast('You already have a question this week. Change it in This Week.');
-      w.question = MAP[Number(arg)].question; save(); toast('Added to This Week. Edit it to fit.');
+      /* v0.8: go to This Week so the goal is seen where it lives (Ran). */
+      if (has(w.question)) { S.ui.viewWeek = ''; go('week'); return toast('You already have a goal this week. Change it here if you like.'); }
+      w.question = MAP[Number(arg)].question; S.ui.viewWeek = ''; go('week'); toast('Added as this week\'s goal. Edit it to fit.');
     }
   };
 
@@ -1609,7 +1699,7 @@
   }
 
   /* v0.7.7: actions that change something in place keep the page where it is, instead of jumping to the top. */
-  var KEEP_SCROLL = { timerOpen: 1, restOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
+  var KEEP_SCROLL = { logAll: 1, timerOpen: 1, restOpen: 1, timerStart: 1, timerPause: 1, timerReset: 1, setBox: 1, setMode: 1, startRest: 1, startWork: 1,
     moreTime: 1, customToggle: 1, setCustom: 1, nextLine: 1, pauseOpen: 1, pauseClose: 1, pauseToggle: 1, reachToggle: 1,
     result: 1, reframeExpand: 1, setFit: 1, setWeeks: 1, goalStarter: 1, useExampleStep: 1, smaller: 1, editStep: 1, useQuestion: 1 };
   var keepScroll = false;
